@@ -1,63 +1,54 @@
-# Specification for Custom-Coded AI Car Finder Agent
+# Project Plan: AI Car Finder Agent
 
-This document outlines the components and steps required to build a custom AI agent for finding used cars across multiple websites.
-
----
-
-## 1. Web Scraping Engine
-
-This component is responsible for visiting websites and gathering raw listing data.
-
-* **Technology:** Use Python.
-* **For Static Sites:** Employ libraries like `requests` and `BeautifulSoup` to fetch and parse simple HTML.
-* **For Dynamic/JS-Heavy Sites:** Use a browser automation library like `Selenium` or `Playwright`. This will control a real browser (e.g., Chrome) to mimic human interaction, handle infinite scroll, and click on elements to reveal data.
+This document outlines the goals, architecture, and development progress for the AI Car Finder Agent.
 
 ---
 
-## 2. Data Standardization and Storage
+## 1. Project Goal & Core Components
 
-Data from different sources must be cleaned and stored in a uniform structure.
+The goal is to build a custom AI agent that finds used cars across multiple websites, analyzes them with an LLM, and delivers a daily digest of the best findings.
 
-* **Schema:** Define a standard data structure for each car listing. Key fields should include:
-    * `make`
-    * `model`
-    * `year`
-    * `price`
-    * `mileage`
-    * `vin`
-    * `location`
-    * `url` (link to the original listing)
-    * `source_site` (e.g., cars.com)
-    * `scraped_timestamp`
-* **Storage:** Use a simple SQLite database to store the listings. This allows for easy querying and helps in tracking which listings have already been seen and processed.
+*   **Web Scraping Engine:** Scrapes both static and dynamic websites for car listings.
+*   **Data Standardization & Storage:** Cleans and stores listing data in a uniform SQLite database.
+*   **AI-Powered Analysis:** Enriches raw data using either the Gemini API or a self-hosted open model.
+*   **Containerization & Orchestration:** Runs the entire process reliably on a schedule within a GKE cluster.
+*   **Digest Generation:** Creates and sends a daily HTML email summary.
 
 ---
 
-## 3. AI-Powered Analysis
+## 2. Development Plan & Progress
 
-This is the core "agent" logic that enriches the raw data.
+This checklist tracks the implementation status of each component.
 
-*   **LLM Integration Strategy:** The agent will support two modes of operation for comparison.
-    *   **Option A: Managed LLM API:** Integrate with a commercial Large Language Model API (e.g., Gemini API) for high-quality analysis with minimal setup.
-    *   **Option B: Self-Hosted Open Model:** Implement support for a self-hosted open-source model (e.g., Llama 3, Mistral). This provides more control and potentially lower costs. The model can be served using a framework like Ollama or a dedicated inference server.
-*   **Key Functions:**
-    *   **Summarize Descriptions:** Generate a concise, bullet-point summary of the seller's description, highlighting key features and potential issues.
-    *   **Extract Unstructured Data:** Programmatically ask questions about the description text, such as "Does the description mention a clean title?" or "Are service records mentioned?".
-    *   **Create a Relevance Score:** Based on a predefined set of user preferences (e.g., "low mileage is critical," "must have sunroof"), have the LLM score each listing on a scale of 1-10 for its suitability.
+### Phase 1: Core Application Development
 
----
+*   [x] **Source Control:** Set up GitHub repository and SSH keys.
+*   [x] **Project Scaffolding:** Create Python project structure, `requirements.txt`, and `.gitignore`.
+*   [x] **Web Scraping Engine:**
+    *   [x] Implement static scraper (`requests`, `BeautifulSoup`).
+    *   [x] Implement dynamic scraper (`Selenium`, `webdriver-manager`).
+*   [x] **Data Storage:**
+    *   [x] Implement SQLite database schema and connection logic.
+*   [ ] **AI-Powered Analysis:**
+    *   [ ] Implement Gemini API integration.
+    *   [ ] Implement self-hosted model integration (e.g., via Ollama).
+*   [ ] **Digest Generation:**
+    *   [ ] Create HTML email template (Jinja2).
+    *   [ ] Implement email sending logic.
+*   [ ] **Main Application Logic:**
+    *   [ ] Create `main.py` to orchestrate the scraping, analysis, and digest generation workflow.
 
-## 4. Containerization and Orchestration
+### Phase 2: Containerization & Deployment
 
-The process will be containerized and deployed to a Kubernetes cluster to ensure scalability and reliable, automated execution.
+*   [x] **Containerization:**
+    *   [x] Create `Dockerfile` for the application.
+    *   [ ] **(Blocked)** Build and test the Docker image locally. *(Requires user to configure Docker permissions).*
+*   [ ] **Orchestration (GKE):**
+    *   [ ] Create Kubernetes `CronJob` manifest (`cronjob.yaml`).
+    *   [ ] Set up Google Artifact Registry for the container image.
+    *   [ ] Deploy the application to the GKE cluster.
 
-*   **Containerization:**
-    *   A `Dockerfile` will be created to package the Python application, its dependencies, and the scraping drivers into a portable container image.
-    *   The image will be stored in a container registry (e.g., Google Artifact Registry).
-*   **Orchestration:**
-    *   **Platform:** The application will be deployed to a Google Kubernetes Engine (GKE) cluster.
-    *   **Scheduling:** A Kubernetes `CronJob` resource will be defined in a YAML manifest. This will replace traditional cron jobs and trigger the scraping and analysis process on a defined schedule (e.g., daily at 7 AM).
-*   **Digest Format:**
-    *   Generate a daily email digest.
-    *   Use a templating engine (like Jinja2) to create a clean HTML email containing the top-ranked cars found that day.
-    *   Each entry in the digest should include the car's key details, the AI-generated summary, the relevance score, and a direct link to the listing.
+### Phase 3: Dev Environment & Tooling
+
+*   [ ] **Reproducible Dev Environment:**
+    *   [ ] Create a `.devcontainer` configuration for a consistent, container-based development environment.
