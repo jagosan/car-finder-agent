@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 
-def scrape_static_site(url):
+def scrape_static_site(url="https://www.cars.com/shopping/results/?stock_type=used&makes%5B%5D=honda&models%5B%5D=civic&list_price_max=&maximum_distance=20&zip="):
     """
     Scrapes a static website to extract car listing data.
 
@@ -18,15 +18,19 @@ def scrape_static_site(url):
         soup = BeautifulSoup(response.content, 'html.parser')
 
         listings = []
-        for article in soup.find_all('article', class_='product_pod'):
-            title = article.h3.a['title']
-            price = article.find('p', class_='price_color').text
-            availability = article.find('p', class_='instock availability').text.strip()
+        for vehicle_card in soup.find_all('div', class_='vehicle-card-main'):
+            title = vehicle_card.find('h2', class_='title').text.strip()
+            price = vehicle_card.find('span', class_='primary-price').text.strip()
+            mileage = vehicle_card.find('div', class_='mileage').text.strip()
+            location = vehicle_card.find('div', class_='dealer-name').text.strip()
+            link = "https://www.cars.com" + vehicle_card.find('a', class_='vehicle-card-link')['href']
             
             listings.append({
                 'title': title,
                 'price': price,
-                'availability': availability
+                'mileage': mileage,
+                'location': location,
+                'link': link
             })
 
         return listings
@@ -36,7 +40,7 @@ def scrape_static_site(url):
         return None
 
 if __name__ == '__main__':
-    target_url = "http://books.toscrape.com"
+    target_url = "https://www.cars.com/shopping/results/?stock_type=used&makes%5B%5D=honda&models%5B%5D=civic&list_price_max=&maximum_distance=20&zip="
     scraped_data = scrape_static_site(target_url)
     if scraped_data:
         for item in scraped_data:
