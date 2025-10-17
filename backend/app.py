@@ -3,6 +3,8 @@ import sqlite3
 import subprocess
 import datetime
 
+import logging
+
 app = Flask(__name__)
 
 DATABASE = '/app/database/car_finder.db'
@@ -66,13 +68,27 @@ def scrape_cars():
         # Assuming main.py is in the parent directory
         result = subprocess.run(
             ["python3", "../main.py", "--model", "mistral"],
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            check=True
+            timeout=300 # 5 minutes timeout
         )
+
+        if result.returncode != 0:
+            logging.error(f"Scraping script failed with exit code {result.returncode}")
+            logging.error(f"Stdout: {result.stdout}")
+            logging.error(f"Stderr: {result.stderr}")
+            return jsonify(message="Scraping failed!", error=result.stderr), 500
+
         return jsonify(message="Scraping initiated successfully!", output=result.stdout), 200
-    except subprocess.CalledProcessError as e:
-        return jsonify(message="Scraping failed!", error=e.stderr), 500
+    except subprocess.TimeoutExpired as e:
+        logging.error(f"Scraping script timed out after {e.timeout} seconds.")
+        logging.error(f"Stdout: {e.stdout}")
+        logging.error(f"Stderr: {e.stderr}")
+        return jsonify(message="Scraping timed out!", error=f"Scraping timed out after {e.timeout} seconds."), 500
+    except Exception as e:
+        logging.error(str(e))
+        return jsonify(message="An unexpected error occurred during scraping!", error=str(e)), 500
 
 @app.route('/train', methods=['POST'])
 def train_model():
@@ -97,5 +113,8 @@ def train_model():
         return jsonify(message=f"Failed to record feedback: {e}"), 500
 
 if __name__ == '__main__':
-    init_db()
-    app.run(debug=True, host='0.0.0.0')
+    try:
+        init_db()
+        app.run(debug=True, host='0.0.0.0')
+    except Exception as e:
+        logging.error(f"An error occurred during application startup: {e}")

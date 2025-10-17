@@ -85,3 +85,15 @@ This checklist tracks the implementation status of each component.
 The next step is to add SSL/443 support to the Ingress.
 
 1.  **Add SSL/443 support:** I will update the Ingress to support SSL/443.
+
+---
+
+## 4. Current Blocker
+
+The `main.py` scraping script is not producing any output when executed as a subprocess from the backend Flask application. This is preventing further debugging of the scraping logic, as no errors or success messages are being logged, even after implementing comprehensive error handling and logging mechanisms.
+
+---
+
+## 5. Next Steps
+
+The immediate next step is to debug the silent failure of the `main.py` scraping script. This involves further investigation into why the script is not producing any output when run as a subprocess, and how to capture its execution details.

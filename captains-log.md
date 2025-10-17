@@ -39,3 +39,54 @@ The project was a success. The AI Car Finder Agent is now fully operational, dep
 **Conclusion:**
 
 This project was a valuable learning experience. We successfully built and deployed a complex AI agent, overcoming several technical challenges along the way. The lessons learned from this project will be invaluable for future projects involving web scraping, AI model integration, and Kubernetes deployment.
+
+## Stardate: 2025.10.16
+
+### Mission: Frontend and Backend Deployment & Debugging
+
+**Objective:** Deploy the frontend and backend services to GKE, enable SSL, and resolve any operational issues.
+
+**Key Events & Lessons Learned:**
+
+1.  **Initial Deployment:**
+    *   **What happened:** Attempted to deploy frontend and backend services to GKE.
+    *   **Resolution:** Created `backend-service.yaml`, `frontend-service.yaml`, and `ingress.yaml`. Configured frontend Nginx to proxy API requests to the backend. Updated `frontend/Dockerfile` and `frontend/src/App.js`.
+    *   **Lesson Learned:** Proper service and ingress configuration is crucial for inter-service communication and external access in Kubernetes.
+
+2.  **GKE Authentication Issue:**
+    *   **What happened:** `kubectl apply` failed with authentication errors (`gcloud auth login` required).
+    *   **Resolution:** User re-authenticated `gcloud`.
+    *   **Lesson Learned:** GKE deployments require up-to-date `gcloud` authentication.
+
+3.  **ImagePullBackOff Error:**
+    *   **What happened:** Frontend and backend pods were stuck in `ImagePullBackOff` status.
+    *   **Resolution:** Built and pushed new Docker images for both frontend and backend to Google Artifact Registry.
+    *   **Lesson Learned:** Ensure Docker images are built and pushed to the registry after code changes, and that GKE nodes have permissions to pull them.
+
+4.  **Database Connection Error (`sqlite3.OperationalError: unable to open database file`):**
+    *   **What happened:** Backend pod failed to start due to an inability to open the SQLite database file. This was caused by an incorrect `hostPath` volume mount and a `car_finder.db` directory conflict.
+    *   **Resolution:**
+        *   Changed `hostPath` in `kubernetes/backend-deployment.yaml` from `/data/car-finder-agent` to `/mnt/stateful_partition/car-finder-agent` (a writable location on GKE nodes).
+        *   Removed `subPath: car_finder.db` from the volume mount and changed `mountPath` to `/app/database` to mount the entire directory.
+        *   Updated `DATABASE` path in `backend/app.py` to `/app/database/car_finder.db`.
+        *   Manually removed the conflicting `car_finder.db` directory from the host via `kubectl exec`.
+    *   **Lesson Learned:** Careful configuration of `hostPath` volumes and understanding how `subPath` interacts with file vs. directory mounts is critical. `hostPath` is suitable for development but PersistentVolumeClaims are recommended for production.
+
+5.  **Database Table Not Found Error (`sqlite3.OperationalError: no such table: listings`):**
+    *   **What happened:** After resolving the database connection, the backend failed because the `listings` table did not exist in the newly created database.
+    *   **Resolution:** Added an `init_db()` function to `backend/app.py` to create the necessary tables on application startup.
+    *   **Lesson Learned:** Database schema initialization should be handled by the application, especially when dealing with ephemeral or newly created databases.
+
+6.  **Scraping Failed (Silent Error):**
+    *   **What happened:** The frontend reported "Scraping failed", but backend logs showed no specific error from the `subprocess.run` call. This indicated a silent failure within the `main.py` script.
+    *   **Debugging Steps & Resolutions:**
+        *   **Initial Logging Attempt:** Added `print(e.stderr)` to `backend/app.py` to capture subprocess errors, but it didn't appear in logs.
+        *   **Dockerfile Correction:** Realized `main.py` and `src` were not correctly copied into the backend container. Modified `backend/Dockerfile` to copy the entire project from the root build context and merged `backend/requirements.txt` into the root `requirements.txt`.
+        *   **Logging Module Integration:** Replaced `print` statements with `logging.error` for more robust error capture.
+        *   **`subprocess.run` Argument Conflict:** Discovered `capture_output=True` and `stderr=subprocess.STDOUT` were mutually exclusive. Corrected `subprocess.run` to use `stdout=subprocess.PIPE` and `stderr=subprocess.PIPE` and manually check `result.returncode`.
+        *   **`xvfb` Installation:** Identified that `chromedriver` was failing to start due to missing `xvfb` (X Virtual Framebuffer). Added `xvfb` installation to `backend/Dockerfile`.
+        *   **Current Blocker:** Despite all these changes, the `main.py` script still fails silently when executed as a subprocess. The logs do not show any output from the script, even with `stdout` and `stderr` being captured. This suggests the script might be hanging or encountering an issue that prevents it from producing any output before a timeout.
+
+**Current Blocker:** The `main.py` scraping script is not producing any output when executed as a subprocess from the backend Flask application. This is preventing further debugging of the scraping logic, as no errors or success messages are being logged, even after implementing comprehensive error handling and logging mechanisms.
+
+**Next Steps:** The immediate next step is to debug the silent failure of the `main.py` scraping script. This involves further investigation into why the script is not producing any output when run as a subprocess, and how to capture its execution details.
