@@ -1,0 +1,7 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: car-finder-certificate
+spec:
+  domains:
+    - car-finder.example.com

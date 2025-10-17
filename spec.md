@@ -71,6 +71,7 @@ This checklist tracks the implementation status of each component.
     *   [x] Create a new Dockerfile for the back-end API.
     *   [x] Update Kubernetes manifests to include the new front-end and back-end deployments and services.
     *   [x] Expose the front-end service to the internet using an Ingress.
+    *   [ ] Add SSL/443 support to the Ingress.
 
 ### Phase 4: Dev Environment & Tooling
 
@@ -81,6 +82,6 @@ This checklist tracks the implementation status of each component.
 
 ## 3. Next Steps
 
-The next step is to deploy the application to GKE.
+The next step is to add SSL/443 support to the Ingress.
 
-1.  **Deploy to GKE:** I will deploy the application to GKE by applying the Kubernetes manifests.
+1.  **Add SSL/443 support:** I will update the Ingress to support SSL/443.
