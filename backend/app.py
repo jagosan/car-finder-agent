@@ -5,7 +5,7 @@ import datetime
 
 app = Flask(__name__)
 
-DATABASE = '../car_finder.db'
+DATABASE = '/app/database/car_finder.db'
 
 def get_db_connection():
     conn = sqlite3.connect(DATABASE)
