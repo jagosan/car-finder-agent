@@ -1,0 +1,17 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pull-model-job
+  namespace: ollama
+spec:
+  template:
+    spec:
+      containers:
+      - name: ollama-pull
+        image: ollama/ollama:0.12.3
+        command: ["ollama", "pull", "gemma3"]
+        env:
+        - name: OLLAMA_HOST
+          value: "http://ollama.ollama.svc.cluster.local:11434"
+      restartPolicy: Never
+  backoffLimit: 4

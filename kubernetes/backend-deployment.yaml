@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  labels:
+    app: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: us-central1-docker.pkg.dev/jmacleod-42/car-finder-agent-repo/backend:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: OLLAMA_API_URL
+          value: "http://ollama.ollama.svc.cluster.local:11434/api/generate"
+        volumeMounts:
+        - name: car-finder-db
+          mountPath: /app/car_finder.db
+          subPath: car_finder.db
+      volumes:
+      - name: car-finder-db
+        # IMPORTANT: This hostPath volume is for development purposes only and is not recommended for production.
+        # For production, you should use a PersistentVolumeClaim.
+        hostPath:
+          path: /data/car-finder-agent
+          type: DirectoryOrCreate

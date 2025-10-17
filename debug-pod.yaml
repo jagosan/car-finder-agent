@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug-pod
+  namespace: default
+spec:
+  containers:
+  - name: debug-container
+    image: curlimages/curl:latest
+    command: ["curl", "-X", "POST", "-v", "-H", "Content-Type: application/json", "http://ollama.ollama.svc.cluster.local:11434/api/generate", "-d", "{\"model\": \"mistral\", \"prompt\": \"Why is the sky blue?\"}"]
+  restartPolicy: Never

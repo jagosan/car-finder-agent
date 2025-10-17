@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: car-finder-agent
+spec:
+  schedule: "0 0 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: car-finder-agent
+            image: us-central1-docker.pkg.dev/jmacleod-42/car-finder-agent-repo/car-finder-agent:latest
+            imagePullPolicy: Always
+            command: ["python3", "main.py", "--model", "mistral"]
+            env:
+            - name: OLLAMA_API_URL
+              value: "http://ollama.ollama.svc.cluster.local:11434/api/generate"
+            resources:
+              requests:
+                memory: "1Gi"
+                cpu: "500m"
+              limits:
+                memory: "2Gi"
+                cpu: "1"
+          restartPolicy: OnFailure

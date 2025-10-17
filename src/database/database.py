@@ -12,7 +12,7 @@ def create_connection(db_file):
     return conn
 
 def create_table(conn):
-    """ create a table from the create_table_sql statement """
+    """ create tables from the create_table_sql statements """
     try:
         sql_create_listings_table = """ CREATE TABLE IF NOT EXISTS listings (
                                         id integer PRIMARY KEY,
@@ -27,8 +27,18 @@ def create_table(conn):
                                         source_site text,
                                         scraped_timestamp text NOT NULL
                                     ); """
+
+        sql_create_feedback_table = """ CREATE TABLE IF NOT EXISTS feedback (
+                                        id integer PRIMARY KEY,
+                                        car_id integer NOT NULL,
+                                        preference text NOT NULL,
+                                        timestamp text NOT NULL,
+                                        FOREIGN KEY (car_id) REFERENCES listings (id)
+                                    ); """
+
         c = conn.cursor()
         c.execute(sql_create_listings_table)
+        c.execute(sql_create_feedback_table)
     except Error as e:
         print(e)
 
@@ -50,15 +60,14 @@ def get_all_listings(conn):
     """
     Query all rows in the listings table
     :param conn: the Connection object
-    :return:
+    :return: list of tuples representing the rows
     """
     cur = conn.cursor()
     cur.execute("SELECT * FROM listings")
 
     rows = cur.fetchall()
 
-    for row in rows:
-        print(row)
+    return rows
 
 if __name__ == '__main__':
     db_file = "car_finder.db"

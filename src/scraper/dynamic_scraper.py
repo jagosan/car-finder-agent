@@ -5,7 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-def scrape_dynamic_site(url):
+def scrape_dynamic_site(url="https://www.cars.com/shopping/results/?stock_type=used&makes%5B%5D=honda&models%5B%5D=civic&list_price_max=&maximum_distance=20&zip="):
     """
     Scrapes a dynamic/JS-heavy website to extract car listing data.
 
@@ -21,40 +21,58 @@ def scrape_dynamic_site(url):
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     
+    print("[*] Initializing Chrome driver...")
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
     
     try:
+        print(f"[*] Navigating to URL: {url}")
         driver.get(url)
 
         # Wait for the main content to load
-        # Replace 'quotes' with the actual container of the listings on the target site
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CLASS_NAME, "quote"))
+        print("[*] Waiting for vehicle cards to load...")
+        WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "vehicle-card-main"))
         )
+        print("[*] Vehicle cards found.")
 
-        # TODO: Add logic to find and parse car listings from the page
-        # This will be highly specific to the target website's structure.
-        # For now, we'll extract the quotes as a demonstration.
-        
         listings = []
-        quote_elements = driver.find_elements(By.CLASS_NAME, "quote")
-        for quote_element in quote_elements:
-            text = quote_element.find_element(By.CLASS_NAME, "text").text
-            author = quote_element.find_element(By.CLASS_NAME, "author").text
-            listings.append({'text': text, 'author': author})
+        vehicle_cards = driver.find_elements(By.CLASS_NAME, "vehicle-card-main")
+        print(f"[*] Found {len(vehicle_cards)} vehicle cards.")
 
+        for i, vehicle_card in enumerate(vehicle_cards):
+            print(f"  - Processing card {i+1}/{len(vehicle_cards)}...")
+            title = vehicle_card.find_element(By.CLASS_NAME, 'title').text.strip()
+            price = vehicle_card.find_element(By.CLASS_NAME, 'primary-price').text.strip()
+            mileage = vehicle_card.find_element(By.CLASS_NAME, 'mileage').text.strip()
+            location = vehicle_card.find_element(By.CLASS_NAME, 'dealer-name').text.strip()
+            link = vehicle_card.find_element(By.CLASS_NAME, 'vehicle-card-link').get_attribute('href')
+            
+            listings.append({
+                'title': title,
+                'price': price,
+                'mileage': mileage,
+                'location': location,
+                'link': link
+            })
+
+        print("[*] Scraping completed successfully.")
         return listings
 
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
     finally:
+        print("[*] Closing Chrome driver.")
         driver.quit()
 
 if __name__ == '__main__':
     # Example usage with a JS-heavy site
-    target_url = "http://quotes.toscrape.com/js/"
+    target_url = "https://www.cars.com/shopping/results/?stock_type=used&makes%5B%5D=honda&models%5B%5D=civic&list_price_max=&maximum_distance=20&zip="
+    print("[*] Starting dynamic scraper...")
     scraped_data = scrape_dynamic_site(target_url)
     if scraped_data:
-        for item in scraped_data:
-            print(item)
+        print(f"\n[*] Successfully scraped {len(scraped_data)} listings.")
+        # for item in scraped_data:
+        #     print(item)
+    else:
+        print("\n[*] Scraping failed or returned no data.")

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Daily Car Digest</title>
+    <style>
+        body { font-family: sans-serif; }
+        .car { border-bottom: 1px solid #ccc; padding: 10px; }
+        .car h2 { margin: 0; }
+        .car p { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>Daily Car Digest</h1>
+    <p>Here are the top car listings for today:</p>
+
+    {% for car in cars %}
+    <div class="car">
+        <h2>{{ car.title }}</h2>
+        <p><strong>Price:</strong> {{ car.price }}</p>
+        <p><strong>Mileage:</strong> {{ car.mileage }}</p>
+        <p><strong>Location:</strong> {{ car.location }}</p>
+        <p><a href="{{ car.link }}">View Listing</a></p>
+        <div>
+            <h3>Analysis:</h3>
+            <p>{{ car.analysis }}</p>
+        </div>
+    </div>
+    {% endfor %}
+
+</body>
+</html>
