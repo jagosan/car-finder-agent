@@ -29,18 +29,17 @@ def analyze_car_data_ollama(car_data: dict, model: str) -> str:
     """
 
     try:
-        response = requests.post(
-            ollama_api_url,
-            data=json.dumps({
-                "model": model,
-                "prompt": prompt,
-                "stream": False
-            }),
-            headers={"Content-Type": "application/json"}
-        )
-        response.raise_for_status()
-        # The actual response is a JSON object, and the content is in the 'response' key.
-        return response.json().get("response", "No response from model.")
+        with requests.Session() as session:
+            response = session.post(
+                ollama_api_url,
+                data=json.dumps({
+                    "model": model,
+                    "prompt": prompt
+                }),
+                headers={"Content-Type": "application/json"}
+            )
+            response.raise_for_status()
+            return response.json().get("response", "No response from model.")
     except requests.exceptions.RequestException as e:
         return f"An error occurred during analysis: {e}"
 

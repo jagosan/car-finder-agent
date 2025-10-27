@@ -13,3 +13,10 @@ When attempting to install Python packages, the `pip` command may not be directl
 ## Tooling and Authentication Hints
 
 To improve efficiency and avoid repeating mistakes, this `GEMINI.md` file should be continuously updated with hints and best practices regarding authentication, tool calling, and common operational procedures. This includes, but is not limited to, `gcloud` authentication, `kubectl` usage, and Docker commands.
+
+## Project Workflow
+
+- Always read `spec.md` and give a summary of what we have accomplished so far, and what the next steps are.
+- Provide an update after a maximum of 1 minute for any long-running operations.
+- Be rigorous in your debugging and always create a plan before trying to make incremental progress based on assumptions.
+- Always provide an estimate of the time an operation is expected to take, and provide updates for any operation that is expected to take more than a minute.

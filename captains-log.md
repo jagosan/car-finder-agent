@@ -90,3 +90,54 @@ This project was a valuable learning experience. We successfully built and deplo
 **Current Blocker:** The `main.py` scraping script is not producing any output when executed as a subprocess from the backend Flask application. This is preventing further debugging of the scraping logic, as no errors or success messages are being logged, even after implementing comprehensive error handling and logging mechanisms.
 
 **Next Steps:** The immediate next step is to debug the silent failure of the `main.py` scraping script. This involves further investigation into why the script is not producing any output when run as a subprocess, and how to capture its execution details.
+
+## Stardate: 2025.10.26
+
+### Mission: Architectural Review and Planning
+
+**Objective:** Address the ongoing silent scraping failure, conduct a thorough architectural review, and establish a clear plan for debugging and improving the application.
+
+**Mission Summary:**
+
+The previous debugging efforts were based on an incorrect premise: that the backend was executing `main.py` as a subprocess. We have now confirmed that the `main.py` script was removed and its logic was integrated directly into the `/scrape` endpoint in `backend/app.py`. This synchronous execution model is the source of many of the application's issues.
+
+A full architectural review was conducted, leading to the following key findings:
+
+*   **Problem:** The synchronous, long-running API endpoint is fragile and not scalable.
+*   **Problem:** Data persistence using `hostPath` is not robust for a Kubernetes environment.
+*   **Problem:** The backend API process is overloaded, handling both web requests and heavy data processing.
+*   **Problem:** Docker images are inefficient and contain unnecessary code.
+*   **Problem:** The frontend provides poor feedback for long-running tasks.
+
+Based on this analysis, a new two-phase **Debug and Polish Plan** was created and approved. This plan is now the official road map and has been documented in `spec.md`.
+
+**Key Decisions:**
+
+1.  **Acknowledge Architectural Flaws:** We will move away from the synchronous API model.
+2.  **Adopt a Two-Phase Approach:**
+    *   **Phase 1 (Stabilize):** First, we will get the current system working by pinpointing and fixing the immediate bug in the `scrape_cars` function.
+    *   **Phase 2 (Refactor):** Second, we will perform a proper architectural refactoring, focusing on asynchronous job execution, robust data persistence (PVCs), and improved UX.
+
+**Next Steps:**
+
+Proceeding with **Phase 1, Step 1** of the new plan: Re-deploy the backend with enhanced logging to capture the root cause of the failure within the `scrape_cars` function.
+
+## Stardate: 2025.10.27
+
+### Mission: Debugging and Stabilization
+
+**Objective:** Isolate and fix the root cause of the application failure.
+
+**Mission Summary:**
+
+Today's session was a deep dive into debugging the Kubernetes deployment. We successfully navigated a complex series of issues to identify the primary blocker.
+
+1.  **Ingress & Routing:** We discovered and fixed multiple issues with the Ingress configuration, which was preventing the frontend from communicating with the backend correctly. This involved correcting API paths and simplifying the Ingress rules to properly align with the frontend's Nginx proxy configuration.
+2.  **Ollama Memory Crash:** After fixing the Ingress, we successfully triggered the backend and discovered the true root cause: the `ollama` pod was crashing. We diagnosed this as an Out of Memory (`OOMKilled`) error.
+3.  **Helm & Deployment Issues:** Attempts to fix the memory issue via `helm upgrade` were blocked by a series of environmental problems (deprecated GCR, incorrect project ID, incorrect Helm repo URLs, OCI authentication). 
+4.  **Direct Intervention:** We pivoted to a more direct solution by modifying the live Kubernetes `Deployment` object for `ollama` and successfully increased its memory limit to `8Gi`.
+5.  **Current Status:** The `ollama` pod is now stable and running correctly. However, a new issue has surfaced where the frontend is unable to fetch initial data from the backend, resulting in an "HTTP error!" message.
+
+**Current Blocker:** The final remaining issue is the communication breakdown between the frontend and backend pods. The frontend is unable to successfully make a `GET` request to `/api/cars`.
+
+**Next Steps:** The immediate next step is to inspect the Nginx logs within the `frontend` pod to diagnose why the proxy is failing. This will be the first action upon resuming the session.

@@ -5,7 +5,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install app dependencies
-RUN apt-get update && apt-get install -y wget xvfb
+RUN apt-get update && apt-get install -y wget xvfb libxkbcommon-x11-0 x11-xserver-utils xfonts-base
 RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 RUN apt-get install -y ./google-chrome-stable_current_amd64.deb
 COPY requirements.txt .

@@ -1,0 +1,4 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'us-central1-docker.pkg.dev/jmacleod-42/car-finder-agent-repo/frontend', '-f', 'frontend/Dockerfile', 'frontend']
+images: ['us-central1-docker.pkg.dev/jmacleod-42/car-finder-agent-repo/frontend']

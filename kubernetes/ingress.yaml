@@ -4,19 +4,9 @@ metadata:
   name: car-finder-ingress
   annotations:
     kubernetes.io/ingress.class: "gce"
-    networking.gke.io/managed-certificates: car-finder-certificate
 spec:
-  tls:
-  - hosts:
-    - car-finder.example.com
-  rules:
-  - host: car-finder.example.com
-    http:
-      paths:
-      - path: /*
-        pathType: ImplementationSpecific
-        backend:
-          service:
-            name: frontend
-            port:
-              number: 80
+  defaultBackend:
+    service:
+      name: frontend
+      port:
+        number: 80

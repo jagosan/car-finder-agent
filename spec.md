@@ -71,7 +71,7 @@ This checklist tracks the implementation status of each component.
     *   [x] Create a new Dockerfile for the back-end API.
     *   [x] Update Kubernetes manifests to include the new front-end and back-end deployments and services.
     *   [x] Expose the front-end service to the internet using an Ingress.
-    *   [ ] Add SSL/443 support to the Ingress.
+    *   [ ] Add SSL/443 support to the Ingress. **(Blocked by GKE Ingress POST request issue)**
 
 ### Phase 4: Dev Environment & Tooling
 
@@ -80,20 +80,44 @@ This checklist tracks the implementation status of each component.
 
 ---
 
-## 3. Next Steps
+## 3. Debug and Polish Plan
 
-The next step is to add SSL/443 support to the Ingress.
+The following two-phase plan was established to first stabilize the application and then refactor it for long-term quality and scalability.
 
-1.  **Add SSL/443 support:** I will update the Ingress to support SSL/443.
+### Phase 1: Stabilize the Current System
 
----
+The goal of this phase is to get the existing application working reliably to provide a stable foundation for future improvements.
 
-## 4. Current Blocker
+1.  **Pinpoint the Current Bug:**
+    *   **Status:** Partially Complete. The root cause of the backend failure was identified as an `OOMKilled` error in the `ollama` pod.
 
-The `main.py` scraping script is not producing any output when executed as a subprocess from the backend Flask application. This is preventing further debugging of the scraping logic, as no errors or success messages are being logged, even after implementing comprehensive error handling and logging mechanisms.
+2.  **Implement a Targeted Fix:**
+    *   **Status:** Partially Complete. The `ollama` pod's memory limit has been increased to `8Gi` and the pod is now stable.
 
----
+3.  **Resolve Frontend-to-Backend Communication:**
+    *   **Action:** Investigate the `frontend` pod's Nginx logs to diagnose why the proxy to the `backend` service is failing.
+    *   **Goal:** Allow the frontend to successfully fetch data from the backend's `/api/*` endpoints.
 
-## 5. Next Steps
+4.  **Resolve the Ingress Issue:**
+    *   **Action:** Investigate GKE Load Balancer logs and Ingress controller configurations to fix the issue preventing POST requests from working correctly.
+    *   **Goal:** Enable SSL/TLS (HTTPS) for the frontend, securing the application.
 
-The immediate next step is to debug the silent failure of the `main.py` scraping script. This involves further investigation into why the script is not producing any output when run as a subprocess, and how to capture its execution details.
+### Phase 2: Architectural Refactoring
+
+After the application is stable, this phase will address underlying architectural issues to make the system more robust, scalable, and maintainable.
+
+1.  **Transition to Asynchronous Jobs:**
+    *   **Action:** Modify the `/scrape` endpoint to be asynchronous. It will use the Kubernetes Python client to programmatically create a `Job` resource, which will run the scraper in the background.
+    *   **Goal:** Provide an immediate API response and prevent HTTP timeouts. Decouple the API from the heavy-lifting scraper process.
+
+2.  **Implement Status Polling:**
+    *   **Action:** Create a new `/scrape-status/<job_id>` endpoint. The frontend will be updated to poll this endpoint to get the real-time status of a scraping job.
+    *   **Goal:** Provide a responsive user experience with clear feedback on the progress of the scraping task.
+
+3.  **Implement a PersistentVolumeClaim (PVC):**
+    *   **Action:** Replace the current `hostPath` volume with a `PersistentVolumeClaim` for the SQLite database.
+    *   **Goal:** Ensure data persistence and prevent data loss if the backend pod is rescheduled to a different node.
+
+4.  **Optimize Container Images:**
+    *   **Action:** Refactor the `backend/Dockerfile` and create a dedicated `scraper/Dockerfile` to ensure each container image is minimal, containing only the necessary code and dependencies.
+    *   **Goal:** Improve security, reduce image size, and speed up build/deployment times.
