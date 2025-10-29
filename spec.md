@@ -89,14 +89,13 @@ The following two-phase plan was established to first stabilize the application 
 The goal of this phase is to get the existing application working reliably to provide a stable foundation for future improvements.
 
 1.  **Pinpoint the Current Bug:**
-    *   **Status:** Partially Complete. The root cause of the backend failure was identified as an `OOMKilled` error in the `ollama` pod.
+    *   **Status:** Complete. The root cause of the backend failure was identified as an `OOMKilled` error in the `ollama` pod.
 
 2.  **Implement a Targeted Fix:**
-    *   **Status:** Partially Complete. The `ollama` pod's memory limit has been increased to `8Gi` and the pod is now stable.
+    *   **Status:** Complete. The `ollama` pod's memory limit has been increased to `8Gi` and the pod is now stable.
 
 3.  **Resolve Frontend-to-Backend Communication:**
-    *   **Action:** Investigate the `frontend` pod's Nginx logs to diagnose why the proxy to the `backend` service is failing.
-    *   **Goal:** Allow the frontend to successfully fetch data from the backend's `/api/*` endpoints.
+    *   **Status:** Complete. The `proxy_pass` configuration in `frontend/nginx.conf` was corrected, resolving the communication breakdown between the frontend and backend pods.
 
 4.  **Resolve the Ingress Issue:**
     *   **Action:** Investigate GKE Load Balancer logs and Ingress controller configurations to fix the issue preventing POST requests from working correctly.
@@ -121,3 +120,24 @@ After the application is stable, this phase will address underlying architectura
 4.  **Optimize Container Images:**
     *   **Action:** Refactor the `backend/Dockerfile` and create a dedicated `scraper/Dockerfile` to ensure each container image is minimal, containing only the necessary code and dependencies.
     *   **Goal:** Improve security, reduce image size, and speed up build/deployment times.
+
+---
+
+## 4. Current Debugging Focus
+
+**Problem:** Persistent `404 Client Error` from backend to Ollama service, despite the backend and Ollama pods running in the cluster and the backend image being up-to-date.
+
+**Root Cause Investigation:**
+*   The backend pod is unable to resolve or connect to the Ollama service, resulting in a `404 Client Error`. This is happening despite the debug pod being able to connect to the service successfully using `curl` with the exact same request parameters.
+*   The issue is likely not with the network configuration, but with the backend application itself, possibly with the `requests` library.
+
+**Current Status:**
+*   The backend and Ollama deployments are stable and running.
+*   The backend code is being updated correctly in the running pods.
+*   The `404 Client Error` persists, blocking the completion of the Ollama integration.
+*   The "unexpected token error" in the frontend remains to be investigated.
+
+**Next Steps:**
+
+1.  **User Assistance:** The issue has been escalated to the user for further investigation. It has been suggested that the user attempt to reproduce the issue locally and to double-check the versions of all relevant libraries and dependencies.
+2.  **Frontend Error:** The "unexpected token error" reported by the user still needs to be investigated once the backend is stable.
