@@ -5,7 +5,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+import logging
+
 def scrape_dynamic_site(url="https://www.cars.com/shopping/results/?stock_type=used&makes%5B%5D=honda&models%5B%5D=civic&list_price_max=&maximum_distance=20&zip="):
+    logging.info("[*] Entering scrape_dynamic_site function")
     """
     Scrapes a dynamic/JS-heavy website to extract car listing data.
 
@@ -21,26 +24,31 @@ def scrape_dynamic_site(url="https://www.cars.com/shopping/results/?stock_type=u
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     
-    print("[*] Initializing Chrome driver...")
+    logging.info("[*] Initializing Chrome driver...")
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
     
     try:
-        print(f"[*] Navigating to URL: {url}")
+        logging.info(f"[*] Navigating to URL: {url}")
         driver.get(url)
+        logging.info("[*] Successfully navigated to URL")
 
         # Wait for the main content to load
-        print("[*] Waiting for vehicle cards to load...")
+        logging.info("[*] Waiting for vehicle cards to load...")
         WebDriverWait(driver, 20).until(
             EC.presence_of_element_located((By.CLASS_NAME, "vehicle-card-main"))
         )
-        print("[*] Vehicle cards found.")
+        logging.info("[*] Vehicle cards found.")
 
         listings = []
         vehicle_cards = driver.find_elements(By.CLASS_NAME, "vehicle-card-main")
-        print(f"[*] Found {len(vehicle_cards)} vehicle cards.")
+        if not vehicle_cards:
+            logging.info("[*] No vehicle cards found. Saving screenshot...")
+            driver.save_screenshot("/app/database/screenshot.png")
+            logging.info("[*] Screenshot saved to /app/database/screenshot.png")
+        logging.info(f"[*] Found {len(vehicle_cards)} vehicle cards.")
 
         for i, vehicle_card in enumerate(vehicle_cards):
-            print(f"  - Processing card {i+1}/{len(vehicle_cards)}...")
+            logging.info(f"  - Processing card {i+1}/{len(vehicle_cards)}...")
             title = vehicle_card.find_element(By.CLASS_NAME, 'title').text.strip()
             price = vehicle_card.find_element(By.CLASS_NAME, 'primary-price').text.strip()
             mileage = vehicle_card.find_element(By.CLASS_NAME, 'mileage').text.strip()
@@ -55,14 +63,14 @@ def scrape_dynamic_site(url="https://www.cars.com/shopping/results/?stock_type=u
                 'link': link
             })
 
-        print("[*] Scraping completed successfully.")
+        logging.info("[*] Scraping completed successfully.")
         return listings
 
     except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
+        logging.error(f"An error occurred: {e}")
+        return []
     finally:
-        print("[*] Closing Chrome driver.")
+        logging.info("[*] Closing Chrome driver.")
         driver.quit()
 
 if __name__ == '__main__':

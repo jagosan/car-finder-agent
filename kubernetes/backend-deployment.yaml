@@ -21,12 +21,16 @@ spec:
         - containerPort: 5000
         env:
         - name: OLLAMA_API_URL
-          value: "http://ollama.ollama.svc.cluster.local:11434/api/generate"
+          value: "http://localhost:11434/api/generate"
         - name: DATABASE_PATH
           value: "/app/database/car_finder.db"
         volumeMounts:
         - name: car-finder-db
           mountPath: /app/database
+      - name: ollama
+        image: ollama/ollama
+        ports:
+        - containerPort: 11434
       volumes:
       - name: car-finder-db
         # IMPORTANT: This hostPath volume is for development purposes only and is not recommended for production.

@@ -1,1 +1,9 @@
+requests
+beautifulsoup4
+selenium
+google-generativeai
+webdriver-manager
+Jinja2
 Flask
+ollama
+kubernetes

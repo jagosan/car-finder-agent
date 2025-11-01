@@ -33,7 +33,7 @@ This checklist tracks the implementation status of each component.
     *   [x] Implement SQLite database schema and connection logic.
 *   [x] **AI-Powered Analysis:**
     *   [x] Implement Gemini API integration.
-    *   [x] Implement self-hosted model integration (Ollama with `gemma3`) for in-cluster analysis.
+    *   [ ] Implement self-hosted model integration (Ollama with `gemma3`) for in-cluster analysis. **(Blocked)**
 *   [x] **Digest Generation:**
     *   [x] Create HTML email template (Jinja2).
     *   [x] Implement email sending logic.

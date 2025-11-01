@@ -13,7 +13,14 @@ function App() {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        return response.json();
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.indexOf('application/json') !== -1) {
+          return response.json();
+        } else {
+          return response.text().then(text => {
+            throw new Error(`Unexpected response: ${text}`);
+          });
+        }
       })
       .then(data => {
         setCars(data);
@@ -34,7 +41,19 @@ function App() {
     fetch('/api/scrape', {
       method: 'POST',
     })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.indexOf('application/json') !== -1) {
+          return response.json();
+        } else {
+          return response.text().then(text => {
+            throw new Error(`Unexpected response: ${text}`);
+          });
+        }
+      })
       .then(data => {
         setScrapeMessage(data.message);
         // Optionally refetch cars after scrape
@@ -53,7 +72,19 @@ function App() {
       },
       body: JSON.stringify({ carId, preference }),
     })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.indexOf('application/json') !== -1) {
+          return response.json();
+        } else {
+          return response.text().then(text => {
+            throw new Error(`Unexpected response: ${text}`);
+          });
+        }
+      })
       .then(data => {
         console.log(`Feedback for car ${carId}: ${data.message}`);
         // Optionally update UI to show feedback was registered

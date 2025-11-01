@@ -1,4 +1,5 @@
 import sys
+print("--- RELOADING app.py ---")
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from flask import Flask, jsonify, request
@@ -69,6 +70,7 @@ def get_cars():
     for car in cars:
         cars_list.append(dict(car))
     
+    print(f"Returning {len(cars_list)} cars to the frontend.")
     return jsonify(cars_list)
 
 def analyze_car(car_tuple, model):
@@ -111,11 +113,20 @@ def scrape_cars():
         logging.info(f"Scrape parameters: model={model}, recipient={recipient}")
 
         logging.info("--- 1. Scraping ---")
-        scraped_cars = scrape_dynamic_site()
+        logging.info("Entering scrape_cars function")
+        logging.info("Entering scrape_cars function")
+        try:
+            scraped_cars = scrape_dynamic_site()
+            logging.info(f"scraped_cars: {scraped_cars}")
+        except Exception as e:
+            logging.error(f"An error occurred during scraping: {e}")
+            scraped_cars = []
+        logging.info(f"scraped_cars: {scraped_cars}")
         if not scraped_cars:
             logging.info("No cars scraped. Exiting.")
             return jsonify(message="No cars scraped.")
-        logging.info(f"{len(scraped_cars)} cars scraped successfully.")
+        else:
+            logging.info(f"{len(scraped_cars)} cars scraped successfully.")
 
         logging.info("--- 2. Database ---")
         db_file = DATABASE
@@ -210,6 +221,31 @@ def train_model():
         return jsonify(message=f"Feedback for car {car_id} ({preference}) recorded successfully!"), 200
     except sqlite3.Error as e:
         return jsonify(message=f"Failed to record feedback: {e}"), 500
+
+@app.route('/api/test-ollama')
+def test_ollama():
+    try:
+        ollama_api_url = "http://ollama.ollama.svc.cluster.local:11434/api/generate"
+        request_data = {
+            "model": "mistral",
+            "prompt": "Why is the sky blue?",
+            "stream": False
+        }
+        headers = {"Content-Type": "application/json"}
+
+        response = requests.post(
+            ollama_api_url,
+            data=json.dumps(request_data),
+            headers=headers
+        )
+
+        return jsonify({
+            "status_code": response.status_code,
+            "headers": dict(response.headers),
+            "content": response.text
+        })
+    except Exception as e:
+        return jsonify(message="An unexpected error occurred during the test!", error=str(e)), 500
 
 if __name__ == '__main__':
     try:
