@@ -106,16 +106,13 @@ The goal of this phase is to get the existing application working reliably to pr
 After the application is stable, this phase will address underlying architectural issues to make the system more robust, scalable, and maintainable.
 
 1.  **Transition to Asynchronous Jobs:**
-    *   **Action:** Modify the `/scrape` endpoint to be asynchronous. It will use the Kubernetes Python client to programmatically create a `Job` resource, which will run the scraper in the background.
-    *   **Goal:** Provide an immediate API response and prevent HTTP timeouts. Decouple the API from the heavy-lifting scraper process.
+    *   **Status:** Complete. The `/scrape` endpoint is now asynchronous, using a background thread to run the scraper.
 
 2.  **Implement Status Polling:**
-    *   **Action:** Create a new `/scrape-status/<job_id>` endpoint. The frontend will be updated to poll this endpoint to get the real-time status of a scraping job.
-    *   **Goal:** Provide a responsive user experience with clear feedback on the progress of the scraping task.
+    *   **Status:** Complete. A `/scrape-status` endpoint has been implemented, and the frontend now polls for real-time status updates.
 
 3.  **Implement a PersistentVolumeClaim (PVC):**
-    *   **Action:** Replace the current `hostPath` volume with a `PersistentVolumeClaim` for the SQLite database.
-    *   **Goal:** Ensure data persistence and prevent data loss if the backend pod is rescheduled to a different node.
+    *   **Status:** Complete. The `hostPath` volume has been replaced with a `PersistentVolumeClaim` for the SQLite database, ensuring data persistence.
 
 4.  **Optimize Container Images:**
     *   **Action:** Refactor the `backend/Dockerfile` and create a dedicated `scraper/Dockerfile` to ensure each container image is minimal, containing only the necessary code and dependencies.
@@ -125,19 +122,15 @@ After the application is stable, this phase will address underlying architectura
 
 ## 4. Current Debugging Focus
 
-**Problem:** Persistent `404 Client Error` from backend to Ollama service, despite the backend and Ollama pods running in the cluster and the backend image being up-to-date.
-
-**Root Cause Investigation:**
-*   The backend pod is unable to resolve or connect to the Ollama service, resulting in a `404 Client Error`. This is happening despite the debug pod being able to connect to the service successfully using `curl` with the exact same request parameters.
-*   The issue is likely not with the network configuration, but with the backend application itself, possibly with the `requests` library.
+**Problem:** The application is now stable and functional, using a local `listings.html` file for testing.
 
 **Current Status:**
-*   The backend and Ollama deployments are stable and running.
-*   The backend code is being updated correctly in the running pods.
-*   The `404 Client Error` persists, blocking the completion of the Ollama integration.
-*   The "unexpected token error" in the frontend remains to be investigated.
+*   The backend and frontend are stable and running.
+*   The scraper is functional and uses a local test file.
+*   Asynchronous scraping with status polling is implemented.
+*   The database is persistent using a PVC.
 
 **Next Steps:**
 
-1.  **User Assistance:** The issue has been escalated to the user for further investigation. It has been suggested that the user attempt to reproduce the issue locally and to double-check the versions of all relevant libraries and dependencies.
-2.  **Frontend Error:** The "unexpected token error" reported by the user still needs to be investigated once the backend is stable.
+1.  **Container Image Optimization:** Refactor the `backend/Dockerfile` and create a dedicated `scraper/Dockerfile` to ensure each container image is minimal.
+2.  **Real-world Scraper Target:** Once the architecture is fully refactored, revisit scraping a real-world website, applying the lessons learned from previous attempts.

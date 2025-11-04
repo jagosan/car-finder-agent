@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: us-central1-docker.pkg.dev/jmacleod-42/car-finder-agent-repo/frontend:latest
+        image: us-central1-docker.pkg.dev/jmacleod-42/car-finder-agent-repo/frontend:v2
         ports:
         - containerPort: 80

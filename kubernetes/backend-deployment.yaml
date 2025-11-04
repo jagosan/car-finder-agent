@@ -16,7 +16,8 @@ spec:
     spec:
       containers:
       - name: backend
-        image: us-central1-docker.pkg.dev/jmacleod-42/car-finder-agent-repo/backend:latest
+        image: us-central1-docker.pkg.dev/jmacleod-42/car-finder-agent-repo/backend:v13
+        imagePullPolicy: Always
         ports:
         - containerPort: 5000
         env:
@@ -24,6 +25,8 @@ spec:
           value: "http://localhost:11434/api/generate"
         - name: DATABASE_PATH
           value: "/app/database/car_finder.db"
+        - name: PYTHONPATH
+          value: "/app"
         volumeMounts:
         - name: car-finder-db
           mountPath: /app/database
@@ -33,8 +36,5 @@ spec:
         - containerPort: 11434
       volumes:
       - name: car-finder-db
-        # IMPORTANT: This hostPath volume is for development purposes only and is not recommended for production.
-        # For production, you should use a PersistentVolumeClaim.
-        hostPath:
-          path: /mnt/stateful_partition/car-finder-agent
-          type: DirectoryOrCreate
+        persistentVolumeClaim:
+          claimName: car-finder-db-pvc

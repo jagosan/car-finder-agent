@@ -16,6 +16,10 @@ from src.analysis.gemini_analyzer import analyze_car_data as analyze_with_gemini
 from src.analysis.ollama_analyzer import analyze_car_data_ollama as analyze_with_ollama
 from src.digest.generator import generate_digest, send_email
 
+import threading
+
+scrape_status = {'status': 'idle', 'message': 'No scrape initiated.'}
+
 app = Flask(__name__)
 
 DATABASE = os.environ.get('DATABASE_PATH', '/home/jmacleod/repos/car-finder-agent/car_finder.db')
@@ -106,102 +110,85 @@ def analyze_car(car_tuple, model):
 
 @app.route('/api/scrape', methods=['POST'])
 def scrape_cars():
+    global scrape_status
+    if scrape_status['status'] == 'running':
+        return jsonify(message="Scraping is already in progress."), 409
+
+    scrape_status = {'status': 'running', 'message': 'Scraping initiated.'}
+    threading.Thread(target=_scrape_and_store_data).start()
+    return jsonify(message="Scraping initiated successfully! Check /api/scrape-status for updates."), 202
+
+def _scrape_and_store_data():
+    global scrape_status
     try:
+        logging.basicConfig(level=logging.INFO)
         logging.info("Scrape request received.")
-        model = request.args.get('model', 'gemini')
-        recipient = request.args.get('recipient', 'test@example.com')
-        logging.info(f"Scrape parameters: model={model}, recipient={recipient}")
 
         logging.info("--- 1. Scraping ---")
-        logging.info("Entering scrape_cars function")
-        logging.info("Entering scrape_cars function")
         try:
             scraped_cars = scrape_dynamic_site()
-            logging.info(f"scraped_cars: {scraped_cars}")
+            logging.info(f"{len(scraped_cars)} cars scraped successfully.")
         except Exception as e:
-            logging.error(f"An error occurred during scraping: {e}")
+            logging.error(f"An error occurred during scraping: {e}", exc_info=True)
             scraped_cars = []
-        logging.info(f"scraped_cars: {scraped_cars}")
+        
         if not scraped_cars:
             logging.info("No cars scraped. Exiting.")
-            return jsonify(message="No cars scraped.")
-        else:
-            logging.info(f"{len(scraped_cars)} cars scraped successfully.")
+            scrape_status = {'status': 'completed', 'message': 'No cars scraped.'}
+            return
 
         logging.info("--- 2. Database ---")
         db_file = DATABASE
         conn = create_connection(db_file)
         if conn is None:
             logging.error("Error! cannot create the database connection.")
-            return jsonify(message="Error! cannot create the database connection."), 500
+            scrape_status = {'status': 'failed', 'message': 'Error! cannot create the database connection.'}
+            return
 
         create_table(conn)
+        logging.info("Database table created or already exists.")
 
         for car in scraped_cars:
-            # Basic data parsing and cleaning
             try:
-                title_parts = car.get('title', '').split()
-                year = int(title_parts[0]) if title_parts and title_parts[0].isdigit() else None
-                make = title_parts[1] if len(title_parts) > 1 else None
-                model = " ".join(title_parts[2:]) if len(title_parts) > 2 else None
-
-                price_str = car.get('price', '').replace('$', '').replace(',', '').strip()
-                price = float(price_str) if price_str else None
-
-                mileage_str = car.get('mileage', '').replace('miles', '').replace(',', '').strip()
-                mileage = int(mileage_str) if mileage_str.isdigit() else None
+                logging.info(f"Processing car: {car}")
                 
-                vin = car.get('vin', None) # VIN is not scraped yet
-                location = car.get('location', None)
-                url = car.get('link', None)
-                source_site = "cars.com" # Hardcoded for now
+                make = car.get('make')
+                model = car.get('model')
+                year = car.get('year')
+                price = car.get('price')
+                mileage = car.get('mileage')
+                vin = car.get('vin')
+                location = car.get('location')
+                url = car.get('url')
+                source_site = "truecar.com"
                 scraped_timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-                if all([year, make, model, price, url]):
+                if all([make, model, year, price, url]):
                     listing_tuple = (
                         make, model, year, price, mileage, vin, location, url, source_site, scraped_timestamp
                     )
                     insert_listing(conn, listing_tuple)
+                    logging.info(f"Inserted car into database: {listing_tuple}")
                 else:
-                    logging.warning(f"Skipping incomplete listing: {car.get('title')}")
+                    logging.warning(f"Skipping incomplete listing: {car}")
 
             except (ValueError, IndexError) as e:
-                logging.error(f"Error processing car: {car.get('title')}, Error: {e}")
+                logging.error(f"Error processing car: {car}, Error: {e}", exc_info=True)
                 continue
 
         logging.info("Database processing complete.")
-        logging.info("--- 3. Analysis ---")
-        all_cars_tuples = list(get_all_listings(conn))
-        conn.close() # Close connection after fetching data
-
-        analyzed_cars = []
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_to_car = {executor.submit(analyze_car, car_tuple, model): car_tuple for car_tuple in all_cars_tuples}
-            for future in concurrent.futures.as_completed(future_to_car):
-                car_tuple = future_to_car[future]
-                try:
-                    analyzed_car = future.result()
-                    analyzed_cars.append(analyzed_car)
-                except Exception as exc:
-                    logging.error(f'Error analyzing car {car_tuple}: {exc}')
-
-        logging.info(f"Analysis complete. {len(analyzed_cars)} cars analyzed.")
-        logging.info("--- 4. Digest Generation ---")
-        if analyzed_cars:
-            html_digest = generate_digest(analyzed_cars)
-            send_email(html_digest, recipient)
-            logging.info("Digest generated and email sent successfully.")
-        else:
-            logging.info("No cars to analyze and generate digest.")
+        conn.close()
 
         logging.info("Scrape request completed successfully.")
-        return jsonify(message="Scraping initiated successfully!"), 200
+        scrape_status = {'status': 'completed', 'message': 'Scraping completed successfully!'}
     except Exception as e:
-        logging.error(str(e))
-        return jsonify(message="An unexpected error occurred during scraping!", error=str(e)), 500
+        logging.error(f"An unexpected error occurred during scraping: {e}", exc_info=True)
+        scrape_status = {'status': 'failed', 'message': f'An unexpected error occurred during scraping: {str(e)}'}
 
-@app.route('/api/train', methods=['POST'])
-def train_model():
+@app.route('/api/scrape-status')
+def get_scrape_status():
+    global scrape_status
+    return jsonify(scrape_status)
     data = request.get_json()
     car_id = data.get('carId')
     preference = data.get('preference')

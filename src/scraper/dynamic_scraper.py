@@ -4,23 +4,61 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
 import logging
 
-def scrape_dynamic_site(url="https://www.cars.com/shopping/results/?stock_type=used&makes%5B%5D=honda&models%5B%5D=civic&list_price_max=&maximum_distance=20&zip="):
+def scrape_cars_com(driver):
+    logging.info("[*] Waiting for car listings to load...")
+    WebDriverWait(driver, 30).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, '.vehicle-card'))
+    )
+    logging.info("[*] Car listings found.")
+
+    listings = []
+    car_elements = driver.find_elements(By.CSS_SELECTOR, '.vehicle-card')
+    logging.info(f"[*] Found {len(car_elements)} car listings.")
+
+    for i, car_element in enumerate(car_elements):
+        logging.info(f"  - Processing car {i+1}/{len(car_elements)}...")
+        try:
+            title_element = car_element.find_element(By.CSS_SELECTOR, '.vehicle-card-title')
+            title = title_element.text.strip()
+            year, make, *model_parts = title.split()
+            model = " ".join(model_parts)
+
+            price_element = car_element.find_element(By.CSS_SELECTOR, '.primary-price')
+            price = price_element.text.strip().replace('$', '').replace(',', '')
+
+            mileage_element = car_element.find_element(By.CSS_SELECTOR, 'div.mileage')
+            mileage = mileage_element.text.strip().replace(' mi.', '').replace(',', '')
+
+            location_element = car_element.find_element(By.CSS_SELECTOR, 'div.dealer-name')
+            location = location_element.text.strip()
+            
+            url_element = car_element.find_element(By.CSS_SELECTOR, 'a')
+            url = url_element.get_attribute('href')
+
+
+            listings.append({
+                'make': make,
+                'model': model,
+                'year': int(year),
+                'price': float(price),
+                'mileage': int(mileage),
+                'location': location,
+                'vin': None,
+                'url': url,
+            })
+            logging.info(f"  - Scraped: {{'make': make, 'model': model, 'year': year, 'price': price}}")
+        except Exception as e:
+            logging.error(f"Error processing car listing: {e}")
+            continue
+
+    return listings
+
+def scrape_dynamic_site(url="file:///app/listings.html"):
     logging.info("[*] Entering scrape_dynamic_site function")
-    """
-    Scrapes a dynamic/JS-heavy website to extract car listing data.
-
-    Args:
-        url (str): The URL of the website to scrape.
-
-    Returns:
-        list: A list of dictionaries, where each dictionary represents a car listing.
-    """
-    # Set up the Chrome driver
     options = webdriver.ChromeOptions()
-    options.add_argument('--headless')  # Run in headless mode (no GUI)
+    options.add_argument('--headless')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     
@@ -32,55 +70,26 @@ def scrape_dynamic_site(url="https://www.cars.com/shopping/results/?stock_type=u
         driver.get(url)
         logging.info("[*] Successfully navigated to URL")
 
-        # Wait for the main content to load
-        logging.info("[*] Waiting for vehicle cards to load...")
-        WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.CLASS_NAME, "vehicle-card-main"))
-        )
-        logging.info("[*] Vehicle cards found.")
-
-        listings = []
-        vehicle_cards = driver.find_elements(By.CLASS_NAME, "vehicle-card-main")
-        if not vehicle_cards:
-            logging.info("[*] No vehicle cards found. Saving screenshot...")
-            driver.save_screenshot("/app/database/screenshot.png")
-            logging.info("[*] Screenshot saved to /app/database/screenshot.png")
-        logging.info(f"[*] Found {len(vehicle_cards)} vehicle cards.")
-
-        for i, vehicle_card in enumerate(vehicle_cards):
-            logging.info(f"  - Processing card {i+1}/{len(vehicle_cards)}...")
-            title = vehicle_card.find_element(By.CLASS_NAME, 'title').text.strip()
-            price = vehicle_card.find_element(By.CLASS_NAME, 'primary-price').text.strip()
-            mileage = vehicle_card.find_element(By.CLASS_NAME, 'mileage').text.strip()
-            location = vehicle_card.find_element(By.CLASS_NAME, 'dealer-name').text.strip()
-            link = vehicle_card.find_element(By.CLASS_NAME, 'vehicle-card-link').get_attribute('href')
-            
-            listings.append({
-                'title': title,
-                'price': price,
-                'mileage': mileage,
-                'location': location,
-                'link': link
-            })
+        listings = scrape_cars_com(driver)
 
         logging.info("[*] Scraping completed successfully.")
         return listings
 
     except Exception as e:
         logging.error(f"An error occurred: {e}")
+        # Save a screenshot for debugging
+        driver.save_screenshot("/app/database/screenshot.png")
+        logging.info("[*] Screenshot saved to /app/database/screenshot.png")
         return []
     finally:
         logging.info("[*] Closing Chrome driver.")
         driver.quit()
 
 if __name__ == '__main__':
-    # Example usage with a JS-heavy site
-    target_url = "https://www.cars.com/shopping/results/?stock_type=used&makes%5B%5D=honda&models%5B%5D=civic&list_price_max=&maximum_distance=20&zip="
+    target_url = "file:///home/jmacleod/repos/car-finder-agent/listings.html"
     print("[*] Starting dynamic scraper...")
     scraped_data = scrape_dynamic_site(target_url)
     if scraped_data:
-        print(f"\n[*] Successfully scraped {len(scraped_data)} listings.")
-        # for item in scraped_data:
-        #     print(item)
+        print(f"[*] Successfully scraped {len(scraped_data)} listings.")
     else:
-        print("\n[*] Scraping failed or returned no data.")
+        print("[*] Scraping failed or returned no data.")
