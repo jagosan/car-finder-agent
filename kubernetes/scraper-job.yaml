@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: scraper-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: scraper
+        image: us-central1-docker.pkg.dev/jmacleod-42/car-finder-agent-repo/car-finder-scraper:latest
+        imagePullPolicy: Always # Ensure the latest image is pulled
+        env:
+        - name: MARKETCHECK_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: marketcheck-api-key
+              key: key
+        command: ["python3", "scraper/scrape.py"]
+        args: ["--make=Toyota", "--model=Camry", "--zip_code=90210", "--radius=50"]
+      restartPolicy: Never
+  backoffLimit: 4

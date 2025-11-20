@@ -5,6 +5,11 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import logging
+import datetime
+import os
+import sys
+import argparse
+import time
 
 def scrape_cars_com(driver):
     logging.info("[*] Waiting for car listings to load...")
@@ -47,6 +52,8 @@ def scrape_cars_com(driver):
                 'location': location,
                 'vin': None,
                 'url': url,
+                'source_site': 'cars.com',
+                'scraped_timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             })
             logging.info(f"  - Scraped: {{'make': make, 'model': model, 'year': year, 'price': price}}")
         except Exception as e:
@@ -55,7 +62,7 @@ def scrape_cars_com(driver):
 
     return listings
 
-def scrape_dynamic_site(url="file:///app/listings.html"):
+def scrape_dynamic_site(url):
     logging.info("[*] Entering scrape_dynamic_site function")
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')
@@ -65,31 +72,24 @@ def scrape_dynamic_site(url="file:///app/listings.html"):
     logging.info("[*] Initializing Chrome driver...")
     driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
     
+    scraped_cars = []
     try:
         logging.info(f"[*] Navigating to URL: {url}")
         driver.get(url)
         logging.info("[*] Successfully navigated to URL")
+        time.sleep(10)
+        print(driver.page_source)
 
-        listings = scrape_cars_com(driver)
-
+        scraped_cars = scrape_cars_com(driver)
         logging.info("[*] Scraping completed successfully.")
-        return listings
 
     except Exception as e:
-        logging.error(f"An error occurred: {e}")
+        logging.error(f"An error occurred during scraping: {e}")
         # Save a screenshot for debugging
-        driver.save_screenshot("/app/database/screenshot.png")
-        logging.info("[*] Screenshot saved to /app/database/screenshot.png")
-        return []
+        driver.save_screenshot("/tmp/screenshot.png")
+        logging.info("[*] Screenshot saved to /tmp/screenshot.png")
     finally:
         logging.info("[*] Closing Chrome driver.")
         driver.quit()
 
-if __name__ == '__main__':
-    target_url = "file:///home/jmacleod/repos/car-finder-agent/listings.html"
-    print("[*] Starting dynamic scraper...")
-    scraped_data = scrape_dynamic_site(target_url)
-    if scraped_data:
-        print(f"[*] Successfully scraped {len(scraped_data)} listings.")
-    else:
-        print("[*] Scraping failed or returned no data.")
+    return scraped_cars

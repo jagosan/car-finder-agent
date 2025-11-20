@@ -1,63 +1,32 @@
+import requests
+import json
 import sys
 print("--- RELOADING app.py ---")
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from flask import Flask, jsonify, request
 import sqlite3
-import subprocess
 import datetime
 import logging
-import time
-import argparse
-import concurrent.futures
-from src.scraper.dynamic_scraper import scrape_dynamic_site
-from src.database.database import create_connection, create_table, insert_listing, get_all_listings
+import yaml # Import PyYAML
 from src.analysis.gemini_analyzer import analyze_car_data as analyze_with_gemini
 from src.analysis.ollama_analyzer import analyze_car_data_ollama as analyze_with_ollama
 from src.digest.generator import generate_digest, send_email
+from backend.db import get_db_connection, init_db
 
-import threading
+from kubernetes import client, config
 
 scrape_status = {'status': 'idle', 'message': 'No scrape initiated.'}
 
 app = Flask(__name__)
 
-DATABASE = os.environ.get('DATABASE_PATH', '/home/jmacleod/repos/car-finder-agent/car_finder.db')
+# Load Kubernetes configuration
+try:
+    config.load_incluster_config()
+except config.ConfigException:
+    config.load_kube_config() # Fallback for local development
 
-def get_db_connection():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row # This allows accessing columns by name
-    return conn
-
-def init_db():
-    conn = get_db_connection()
-    c = conn.cursor()
-    sql_create_listings_table = """ CREATE TABLE IF NOT EXISTS listings (
-                                    id integer PRIMARY KEY,
-                                    make text NOT NULL,
-                                    model text NOT NULL,
-                                    year integer NOT NULL,
-                                    price real NOT NULL,
-                                    mileage integer,
-                                    vin text UNIQUE,
-                                    location text,
-                                    url text NOT NULL UNIQUE,
-                                    source_site text,
-                                    scraped_timestamp text NOT NULL
-                                ); """
-
-    sql_create_feedback_table = """ CREATE TABLE IF NOT EXISTS feedback (
-                                    id integer PRIMARY KEY,
-                                    car_id integer NOT NULL,
-                                    preference text NOT NULL,
-                                    timestamp text NOT NULL,
-                                    FOREIGN KEY (car_id) REFERENCES listings (id)
-                                ); """
-    c.execute(sql_create_listings_table)
-    c.execute(sql_create_feedback_table)
-    conn.commit()
-    conn.close()
-
+batch_v1 = client.BatchV1Api()
 
 @app.route('/')
 def hello_world():
@@ -77,36 +46,35 @@ def get_cars():
     print(f"Returning {len(cars_list)} cars to the frontend.")
     return jsonify(cars_list)
 
-def analyze_car(car_tuple, model):
-    car_dict = {
-        'id': car_tuple[0],
-        'make': car_tuple[1],
-        'model': car_tuple[2],
-        'year': car_tuple[3],
-        'price': car_tuple[4],
-        'mileage': car_tuple[5],
-        'vin': car_tuple[6],
-        'location': car_tuple[7],
-        'link': car_tuple[8],
-        'source_site': car_tuple[9],
-        'scraped_timestamp': car_tuple[10]
-    }
-    car_dict['title'] = f"{car_dict['year']} {car_dict['make']} {car_dict['model']}"
-    analysis_input_dict = {
-        'title': car_dict['title'],
-        'price': f"${car_dict['price']}",
-        'mileage': f"{car_dict['mileage']} miles" if car_dict['mileage'] else "N/A",
-        'location': car_dict['location'],
-        'link': car_dict['link']
-    }
+@app.route('/api/listings', methods=['POST'])
+def add_listings():
+    listings = request.get_json()
+    if not listings:
+        return jsonify(message="No listings provided"), 400
 
-    if model == "gemini":
-        analysis = analyze_with_gemini(analysis_input_dict)
-    else:
-        analysis = analyze_with_ollama(analysis_input_dict, model=model)
-    
-    car_dict['analysis'] = analysis
-    return car_dict
+    conn = get_db_connection()
+    c = conn.cursor()
+    new_cars_count = 0
+    for car in listings:
+        try:
+            c.execute(
+                """
+                INSERT INTO listings (make, model, year, price, mileage, vin, location, url, source_site, scraped_timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    car.get('make'), car.get('model'), car.get('year'), car.get('price'),
+                    car.get('mileage'), car.get('vin'), car.get('location'), car.get('url'),
+                    car.get('source_site'), datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                )
+            )
+            new_cars_count += 1
+        except sqlite3.IntegrityError:
+            # This will happen if the URL or VIN is not unique, which is expected.
+            pass
+    conn.commit()
+    conn.close()
+    return jsonify(message=f"Added {new_cars_count} new car listings."), 201
 
 @app.route('/api/scrape', methods=['POST'])
 def scrape_cars():
@@ -115,80 +83,72 @@ def scrape_cars():
         return jsonify(message="Scraping is already in progress."), 409
 
     scrape_status = {'status': 'running', 'message': 'Scraping initiated.'}
-    threading.Thread(target=_scrape_and_store_data).start()
-    return jsonify(message="Scraping initiated successfully! Check /api/scrape-status for updates."), 202
-
-def _scrape_and_store_data():
-    global scrape_status
+    
     try:
-        logging.basicConfig(level=logging.INFO)
-        logging.info("Scrape request received.")
+        # Load the job manifest
+        with open("kubernetes/scraper-job.yaml", "r") as f:
+            job_manifest = yaml.safe_load(f)
 
-        logging.info("--- 1. Scraping ---")
-        try:
-            scraped_cars = scrape_dynamic_site()
-            logging.info(f"{len(scraped_cars)} cars scraped successfully.")
-        except Exception as e:
-            logging.error(f"An error occurred during scraping: {e}", exc_info=True)
-            scraped_cars = []
-        
-        if not scraped_cars:
-            logging.info("No cars scraped. Exiting.")
-            scrape_status = {'status': 'completed', 'message': 'No cars scraped.'}
-            return
+        # Generate a unique job name
+        job_name = f"car-scraper-job-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+        job_manifest['metadata']['name'] = job_name
+        job_manifest['metadata']['labels'] = {'app': 'car-finder', 'job-type': 'scraper'} # Add labels for status tracking
 
-        logging.info("--- 2. Database ---")
-        db_file = DATABASE
-        conn = create_connection(db_file)
-        if conn is None:
-            logging.error("Error! cannot create the database connection.")
-            scrape_status = {'status': 'failed', 'message': 'Error! cannot create the database connection.'}
-            return
-
-        create_table(conn)
-        logging.info("Database table created or already exists.")
-
-        for car in scraped_cars:
-            try:
-                logging.info(f"Processing car: {car}")
-                
-                make = car.get('make')
-                model = car.get('model')
-                year = car.get('year')
-                price = car.get('price')
-                mileage = car.get('mileage')
-                vin = car.get('vin')
-                location = car.get('location')
-                url = car.get('url')
-                source_site = "truecar.com"
-                scraped_timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-                if all([make, model, year, price, url]):
-                    listing_tuple = (
-                        make, model, year, price, mileage, vin, location, url, source_site, scraped_timestamp
-                    )
-                    insert_listing(conn, listing_tuple)
-                    logging.info(f"Inserted car into database: {listing_tuple}")
-                else:
-                    logging.warning(f"Skipping incomplete listing: {car}")
-
-            except (ValueError, IndexError) as e:
-                logging.error(f"Error processing car: {car}, Error: {e}", exc_info=True)
-                continue
-
-        logging.info("Database processing complete.")
-        conn.close()
-
-        logging.info("Scrape request completed successfully.")
-        scrape_status = {'status': 'completed', 'message': 'Scraping completed successfully!'}
-    except Exception as e:
-        logging.error(f"An unexpected error occurred during scraping: {e}", exc_info=True)
-        scrape_status = {'status': 'failed', 'message': f'An unexpected error occurred during scraping: {str(e)}'}
+        # Create the job
+        batch_v1.create_namespaced_job(body=job_manifest, namespace="default") # Assuming 'default' namespace
+        scrape_status = {'status': 'job_created', 'message': f'Scraping job {job_name} created successfully!'}
+        return jsonify(message=f"Scraping job {job_name} created successfully! Check /api/scrape-status for updates."), 202
+    except client.ApiException as e:
+        logging.error(f"Error creating Kubernetes Job: {e}")
+        scrape_status = {'status': 'failed', 'message': f'Error creating Kubernetes Job: {str(e)}'}
+        return jsonify(message=f"Error creating Kubernetes Job: {str(e)}"), 500
+    except FileNotFoundError:
+        logging.error("kubernetes/scraper-job.yaml not found.")
+        scrape_status = {'status': 'failed', 'message': 'Scraper job manifest not found.'}
+        return jsonify(message='Scraper job manifest not found.'), 500
+    except yaml.YAMLError as e:
+        logging.error(f"Error parsing kubernetes/scraper-job.yaml: {e}")
+        scrape_status = {'status': 'failed', 'message': f'Error parsing scraper job manifest: {str(e)}'}
+        return jsonify(message=f'Error parsing scraper job manifest: {str(e)}'), 500
 
 @app.route('/api/scrape-status')
 def get_scrape_status():
     global scrape_status
+    
+    try:
+        # List jobs with the 'job-type: scraper' label
+        jobs = batch_v1.list_namespaced_job(namespace="default", label_selector="job-type=scraper")
+        
+        latest_job = None
+        latest_creation_time = None
+
+        for job in jobs.items:
+            if job.metadata.creation_timestamp:
+                if latest_creation_time is None or job.metadata.creation_timestamp > latest_creation_time:
+                    latest_creation_time = job.metadata.creation_timestamp
+                    latest_job = job
+        
+        if latest_job:
+            if latest_job.status.succeeded:
+                scrape_status = {'status': 'completed', 'message': f"Job {latest_job.metadata.name} succeeded."}
+            elif latest_job.status.failed:
+                scrape_status = {'status': 'failed', 'message': f"Job {latest_job.metadata.name} failed. Reason: {latest_job.status.conditions[0].reason if latest_job.status.conditions else 'Unknown'}"}
+            elif latest_job.status.active:
+                scrape_status = {'status': 'running', 'message': f"Job {latest_job.metadata.name} is running."}
+            else:
+                scrape_status = {'status': 'unknown', 'message': f"Job {latest_job.metadata.name} status unknown."}
+        else:
+            scrape_status = {'status': 'idle', 'message': 'No scraper jobs found.'}
+
+    except client.ApiException as e:
+        logging.error(f"Error getting Kubernetes Job status: {e}")
+        scrape_status = {'status': 'failed', 'message': f'Error getting Kubernetes Job status: {str(e)}'}
+    
+
     return jsonify(scrape_status)
+
+@app.route('/api/feedback', methods=['POST'])
+def submit_feedback():
     data = request.get_json()
     car_id = data.get('carId')
     preference = data.get('preference')
@@ -212,6 +172,9 @@ def get_scrape_status():
 @app.route('/api/test-ollama')
 def test_ollama():
     try:
+        # Assuming `requests` is imported, if not add it.
+        import requests
+        import json
         ollama_api_url = "http://ollama.ollama.svc.cluster.local:11434/api/generate"
         request_data = {
             "model": "mistral",

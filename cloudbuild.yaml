@@ -1,5 +1,8 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/jmacleod-42/backend:latest', '-f', 'backend/Dockerfile.new', '.']
+  args: ['build', '-t', 'us-central1-docker.pkg.dev/jmacleod-42/car-finder-agent-repo/car-finder-backend:latest', '-f', 'backend/Dockerfile', '.']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'us-central1-docker.pkg.dev/jmacleod-42/car-finder-agent-repo/car-finder-scraper:latest', '-f', 'scraper/Dockerfile', '.']
 images:
-- 'gcr.io/jmacleod-42/backend:latest'
+- 'us-central1-docker.pkg.dev/jmacleod-42/car-finder-agent-repo/car-finder-backend:latest'
+- 'us-central1-docker.pkg.dev/jmacleod-42/car-finder-agent-repo/car-finder-scraper:latest'

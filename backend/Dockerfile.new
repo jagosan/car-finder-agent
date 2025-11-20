@@ -1,0 +1,17 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y wget xvfb libxkbcommon-x11-0 x11-xserver-utils xfonts-base curl
+RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+RUN apt-get install -y ./google-chrome-stable_current_amd64.deb
+
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY backend/app.py .
+COPY src ./src
+
+ENV PYTHONPATH /app
+
+CMD ["python3", "app.py"]

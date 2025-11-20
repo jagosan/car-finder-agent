@@ -1,25 +1,19 @@
-
 # Use an official Python runtime as a parent image
 FROM python:3.11-slim
-
-LABEL com.example.version="3"
 
 # Set the working directory in the container
 WORKDIR /app
 
-# Install dependencies
-RUN apt-get update && apt-get install -y sqlite3
-
 # Copy the application code and dependencies
-COPY backend/app.py .
-COPY backend/db.py backend/
-COPY backend/requirements.txt .
+COPY scraper/requirements.txt .
 COPY src ./src
-COPY kubernetes ./kubernetes
+COPY scraper ./scraper
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-EXPOSE 5000
+# Set the python path
+ENV PYTHONPATH /app
 
-CMD ["python3", "app.py"]
+# Command to run the scraper
+CMD ["python3", "scraper/scrape.py"]
