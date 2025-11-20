@@ -26,9 +26,10 @@ This checklist tracks the implementation status of each component.
 
 *   [x] **Source Control:** Set up GitHub repository and SSH keys.
 *   [x] **Project Scolding:** Create Python project structure, `requirements.txt`, and `.gitignore`..
-*   [x] **Web Scraping Engine:**
+*   [ ] **Web Scraping Engine:**
     *   [x] Implement static scraper (`requests`, `BeautifulSoup`) - **Deprecated due to bot detection.**
-    *   [x] Implement dynamic scraper (`Selenium`, `webdriver-manager`) - **Primary scraping method.**
+    *   [ ] Implement dynamic scraper (`Selenium`, `webdriver-manager`) - **Primary scraping method.**
+    *   [x] Implement Marketcheck API integration.
 *   [x] **Data Storage:**
     *   [x] Implement SQLite database schema and connection logic.
 *   [x] **AI-Powered Analysis:**
@@ -48,7 +49,8 @@ This checklist tracks the implementation status of each component.
 *   [x] **Orchestration (GKE):**
     *   [x] Create GKE cluster.
     *   [x] Deploy Ollama with `gemma3` model to the GKE cluster.
-    *   [x] Create Kubernetes `CronJob` manifest (`cronjob.yaml`).
+    *   [x] Create Kubernetes `Job` manifest (`scraper-job.yaml`) for Marketcheck API.
+    *   [x] Create Kubernetes Service Account and Role-based Access Control (RBAC) for scraper Job creation.
     *   [x] Set up Google Artifact Registry for the container image.
     *   [x] Deploy the application to the GKE cluster.
 
@@ -63,6 +65,7 @@ This checklist tracks the implementation status of each component.
     *   [x] Create a new Flask/FastAPI application for the back-end API.
     *   [x] Implement an endpoint to get car listings from the database.
     *   [x] Implement an endpoint to trigger a new scrape.
+    *   [x] Implement an endpoint to receive scraped data from the scraper job.
     *   [x] Implement an endpoint to store user feedback for model training.
 *   [x] **Model Training:**
     *   [x] Research and implement a strategy for fine-tuning the Ollama model with user feedback. (Research done, implementation deferred)
@@ -115,22 +118,24 @@ After the application is stable, this phase will address underlying architectura
     *   **Status:** Complete. The `hostPath` volume has been replaced with a `PersistentVolumeClaim` for the SQLite database, ensuring data persistence.
 
 4.  **Optimize Container Images:**
-    *   **Action:** Refactor the `backend/Dockerfile` and create a dedicated `scraper/Dockerfile` to ensure each container image is minimal, containing only the necessary code and dependencies.
+    *   **Status:** Complete. Refactored the `backend/Dockerfile` and created a dedicated `scraper/Dockerfile` for the Marketcheck API to ensure each container image is minimal.
     *   **Goal:** Improve security, reduce image size, and speed up build/deployment times.
 
 ---
 
 ## 4. Current Debugging Focus
 
-**Problem:** The application is now stable and functional, using a local `listings.html` file for testing.
+**Problem:** The scraper job is unable to resolve the hostname `marketcheck-prod.apigee.net`, leading to `NameResolutionError`. This indicates a potential DNS configuration issue or network restriction within the Kubernetes cluster for outbound connections.
 
 **Current Status:**
 *   The backend and frontend are stable and running.
-*   The scraper is functional and uses a local test file.
+*   The scraper is now configured to use the Marketcheck API.
 *   Asynchronous scraping with status polling is implemented.
 *   The database is persistent using a PVC.
+*   A Kubernetes Service Account and RBAC have been created for job creation.
 
 **Next Steps:**
 
-1.  **Container Image Optimization:** Refactor the `backend/Dockerfile` and create a dedicated `scraper/Dockerfile` to ensure each container image is minimal.
-2.  **Real-world Scraper Target:** Once the architecture is fully refactored, revisit scraping a real-world website, applying the lessons learned from previous attempts.
+1.  **Debug DNS Resolution:** Investigate the `NameResolutionError` in the scraper pod by executing `curl -v https://marketcheck-prod.apigee.net` from within the pod.
+2.  **Verify Kubernetes DNS:** Check Kubernetes DNS settings and ensure pods can resolve external hostnames. This might involve `kubectl exec` into a pod and trying `nslookup marketcheck-prod.apigee.net`.
+3.  **Network Policy Review:** If DNS resolution is confirmed, review any existing network policies that might be restricting outbound traffic from the scraper pods.
