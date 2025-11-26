@@ -94,3 +94,28 @@ Logs containing the `nslookup` and `curl` output have not yet been retrieved fro
 1.  **Retrieve Logs:** Immediately retrieve the logs from `car-scraper-job-20251124180208` to inspect the output of `nslookup` and `curl`.
 2.  **Analyze DNS/Network Configuration:** Based on the results, investigate Kubernetes DNS service configuration, CoreDNS logs, and any relevant network policies or firewall rules that might be blocking outbound traffic to external endpoints.
 ---
+
+---
+## Stardate: 2025.11.26 (Continued)
+
+### Mission: Debug Marketcheck API Integration - `nslookup` and `curl` not found
+
+**Objective:** Install network diagnostic tools into the scraper container image to debug `NameResolutionError`.
+
+**Mission Summary:**
+
+1.  **Identified Missing Tools:** Discovered that `nslookup` and `curl` were not present in the scraper container image, preventing direct network debugging from within the pod.
+2.  **Modified Scraper Dockerfile:** Added `RUN apt-get update && apt-get install -y dnsutils curl --no-install-recommends` to `scraper/Dockerfile` to install these essential utilities.
+3.  **Rebuilt and Pushed Scraper Image:** Built a new `car-finder-scraper:latest` image with the added tools and pushed it to Google Artifact Registry.
+4.  **Triggered New Scraper Job:** A new scraper job (`car-scraper-job-20251126230838`) was triggered to deploy the updated image and execute the diagnostic `nslookup` and `curl` commands.
+5.  **Pending Log Retrieval:** The operation was cancelled before the logs from this job could be retrieved.
+
+**Current Blocker:**
+
+I am unable to see the diagnostic output (`nslookup` and `curl`) from the scraper pod due to the cancelled operation, preventing further analysis of the `NameResolutionError`.
+
+**Next Steps:**
+
+1.  **Retrieve Logs from Last Job:** Immediately retrieve the logs from the `car-scraper-job-20251126230838` job to inspect the output of `nslookup` and `curl`.
+2.  **Analyze DNS/Network Configuration:** Based on the results, investigate Kubernetes DNS service configuration, CoreDNS logs, and any relevant network policies or firewall rules that might be blocking outbound traffic to external endpoints.
+---
