@@ -8,7 +8,7 @@ def search_cars(api_key, make=None, model=None, year=None, zip_code=None, radius
     """
     Searches for car listings using the Marketcheck API.
     """
-    api_url = "https://marketcheck-prod.apigee.net/v2/search/car/active"
+    api_url = "https://api.marketcheck.com/v2/search/car/active"
     params = {
         "api_key": api_key,
         "make": make,
