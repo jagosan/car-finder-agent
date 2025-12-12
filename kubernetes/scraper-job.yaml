@@ -15,7 +15,6 @@ spec:
             secretKeyRef:
               name: marketcheck-api-key
               key: key
-        command: ["python3", "scraper/scrape.py"]
-        args: ["--make=Toyota", "--model=Camry", "--zip_code=90210", "--radius=50"]
-      restartPolicy: Never
-  backoffLimit: 4
+        command: ["python3", "-u", "scraper/scrape.py"]
+      restartPolicy: OnFailure
+  backoffLimit: 0

@@ -85,6 +85,11 @@ def scrape_cars():
     scrape_status = {'status': 'running', 'message': 'Scraping initiated.'}
     
     try:
+        # Get search criteria from the request
+        search_criteria = request.get_json()
+        if not search_criteria:
+            search_criteria = {}
+
         # Load the job manifest
         with open("kubernetes/scraper-job.yaml", "r") as f:
             job_manifest = yaml.safe_load(f)
@@ -93,6 +98,14 @@ def scrape_cars():
         job_name = f"car-scraper-job-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
         job_manifest['metadata']['name'] = job_name
         job_manifest['metadata']['labels'] = {'app': 'car-finder', 'job-type': 'scraper'} # Add labels for status tracking
+
+        # Pass search criteria as arguments to the job
+        args = []
+        for key, value in search_criteria.items():
+            if value:
+                args.append(f"--{key}={value}")
+        
+        job_manifest['spec']['template']['spec']['containers'][0]['args'] = args
 
         # Create the job
         batch_v1.create_namespaced_job(body=job_manifest, namespace="default") # Assuming 'default' namespace
