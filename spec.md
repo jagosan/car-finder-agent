@@ -121,6 +121,29 @@ After the application is stable, this phase will address underlying architectura
     *   **Status:** Complete. Refactored the `backend/Dockerfile` and created a dedicated `scraper/Dockerfile` for the Marketcheck API to ensure each container image is minimal.
     *   **Goal:** Improve security, reduce image size, and speed up build/deployment times.
 
+### Phase 5: UI Modernization
+
+*   [ ] **Modernize the UI:**
+    *   [ ] **Mobile UI:**
+        *   [ ] Display a preview image of the car.
+        *   [ ] Display an overview with:
+            *   [ ] Mileage
+            *   [ ] Exterior and Interior colors
+            *   [ ] Year
+            *   [ ] Accidents
+            *   [ ] Other standard information like AWD vs. RWD.
+    - [ ] **Tinder-like swiping:**
+        *   [ ] Implement swipe left/right to like/dislike.
+    - [ ] **Modern input fields:**
+        *   [ ] Update input fields to be more modern and pleasing.
+*   [ ] **Data model changes:**
+    *   [ ] **Marketcheck API:**
+        *   [ ] Check what data is available from the Marketcheck API.
+    *   [ ] **Database:**
+        *   [ ] Update the database schema to store the new data.
+    *   [ ] **Backend:**
+        *   [ ] Update the backend to serve the new data.
+
 ---
 
 ## 4. Current Debugging Focus

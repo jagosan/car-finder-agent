@@ -35,5 +35,28 @@ def init_db():
                                 ); """
     c.execute(sql_create_listings_table)
     c.execute(sql_create_feedback_table)
+
+    # Add new columns to listings table if they don't exist
+    try:
+        c.execute("ALTER TABLE listings ADD COLUMN image_url TEXT")
+    except sqlite3.OperationalError:
+        pass # column already exists
+    try:
+        c.execute("ALTER TABLE listings ADD COLUMN exterior_color TEXT")
+    except sqlite3.OperationalError:
+        pass # column already exists
+    try:
+        c.execute("ALTER TABLE listings ADD COLUMN interior_color TEXT")
+    except sqlite3.OperationalError:
+        pass # column already exists
+    try:
+        c.execute("ALTER TABLE listings ADD COLUMN drivetrain TEXT")
+    except sqlite3.OperationalError:
+        pass # column already exists
+    try:
+        c.execute("ALTER TABLE listings ADD COLUMN has_accidents INTEGER")
+    except sqlite3.OperationalError:
+        pass # column already exists
+
     conn.commit()
     conn.close()

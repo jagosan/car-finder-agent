@@ -35,6 +35,10 @@ def format_listings(listings_data):
     formatted_listings = []
     if "listings" in listings_data:
         for listing in listings_data["listings"]:
+            has_accidents = 0
+            if listing.get("primary_damage") or listing.get("secondary_damage"):
+                has_accidents = 1
+
             formatted_listing = {
                 "make": listing.get("build", {}).get("make"),
                 "model": listing.get("build", {}).get("model"),
@@ -45,7 +49,12 @@ def format_listings(listings_data):
                 "location": f"{listing.get('dealer', {}).get('city')}, {listing.get('dealer', {}).get('state')}",
                 "url": listing.get("vdp_url"),
                 "source_site": "marketcheck",
-                "scraped_timestamp": listing.get("last_seen_at")
+                "scraped_timestamp": listing.get("last_seen_at"),
+                "image_url": listing.get("photo_url"),
+                "exterior_color": listing.get("exterior_color"),
+                "interior_color": listing.get("interior_color"),
+                "drivetrain": listing.get("drivetrain"),
+                "has_accidents": has_accidents
             }
             formatted_listings.append(formatted_listing)
     return formatted_listings

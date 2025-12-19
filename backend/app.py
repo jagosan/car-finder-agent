@@ -59,13 +59,15 @@ def add_listings():
         try:
             c.execute(
                 """
-                INSERT INTO listings (make, model, year, price, mileage, vin, location, url, source_site, scraped_timestamp)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO listings (make, model, year, price, mileage, vin, location, url, source_site, scraped_timestamp, image_url, exterior_color, interior_color, drivetrain, has_accidents)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     car.get('make'), car.get('model'), car.get('year'), car.get('price'),
                     car.get('mileage'), car.get('vin'), car.get('location'), car.get('url'),
-                    car.get('source_site'), datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    car.get('source_site'), datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    car.get('image_url'), car.get('exterior_color'), car.get('interior_color'),
+                    car.get('drivetrain'), car.get('has_accidents')
                 )
             )
             new_cars_count += 1

@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useSwipeable } from 'react-swipeable';
+import Card from './Card';
 import './App.css';
-import './App.mobile.css';
 
 function App() {
   const [cars, setCars] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [scrapeMessage, setScrapeMessage] = useState('');
-  const [currentCarIndex, setCurrentCarIndex] = useState(0);
+  const [scrapeStatus, setScrapeStatus] = useState(null);
+  const [make, setMake] = useState('');
+  const [model, setModel] = useState('');
+  const [year, setYear] = useState('');
+  const [zipCode, setZipCode] = useState('');
+  const [radius, setRadius] = useState('');
 
   const fetchCars = () => {
     console.log('Fetching cars...');
@@ -42,14 +48,6 @@ function App() {
   useEffect(() => {
     fetchCars();
   }, []);
-
-  const [scrapeStatus, setScrapeStatus] = useState(null);
-
-  const [make, setMake] = useState('');
-  const [model, setModel] = useState('');
-  const [year, setYear] = useState('');
-  const [zipCode, setZipCode] = useState('');
-  const [radius, setRadius] = useState('');
 
   const handleScrape = (e) => {
     e.preventDefault();
@@ -115,32 +113,36 @@ function App() {
       });
   };
 
-  const swipeHandlers = useSwipeable({
+  const handlers = useSwipeable({
     onSwipedLeft: () => {
-      handleFeedback(cars[currentCarIndex].id, 'dislike');
-      setCurrentCarIndex(currentCarIndex + 1);
+      if (cars.length > 0 && currentIndex < cars.length) {
+        handleFeedback(cars[currentIndex].id, 'dislike');
+        setCurrentIndex(currentIndex + 1);
+      }
     },
     onSwipedRight: () => {
-      handleFeedback(cars[currentCarIndex].id, 'like');
-      setCurrentCarIndex(currentCarIndex + 1);
+      if (cars.length > 0 && currentIndex < cars.length) {
+        handleFeedback(cars[currentIndex].id, 'like');
+        setCurrentIndex(currentIndex + 1);
+      }
     },
     preventDefaultTouchmoveEvent: true,
     trackMouse: true
   });
 
   if (loading) {
-    return <div className="App">Loading cars...</div>;
+    return <div className="app">Loading cars...</div>;
   }
 
   if (error) {
-    return <div className="App">Error: {error.message}</div>;
+    return <div className="app">Error: {error.message}</div>;
   }
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Car Listings</h1>
-        <form onSubmit={handleScrape}>
+    <div className="app">
+      <header className="app__header">
+        <h1>Car Finder</h1>
+        <form onSubmit={handleScrape} className="app__form">
           <input type="text" value={make} onChange={e => setMake(e.target.value)} placeholder="Make" />
           <input type="text" value={model} onChange={e => setModel(e.target.value)} placeholder="Model" />
           <input type="text" value={year} onChange={e => setYear(e.target.value)} placeholder="Year" />
@@ -150,24 +152,14 @@ function App() {
         </form>
         {scrapeMessage && <p>{scrapeMessage}</p>}
         {scrapeStatus && <p>Scrape Status: {scrapeStatus.status} - {scrapeStatus.message}</p>}
-        <div className="car-list" {...swipeHandlers}>
-          {cars.length > 0 && currentCarIndex < cars.length ? (
-            <div key={cars[currentCarIndex].id} className="car-item">
-              <h2>{cars[currentCarIndex].year} {cars[currentCarIndex].make} {cars[currentCarIndex].model}</h2>
-              <p>Price: ${cars[currentCarIndex].price}</p>
-              <p>Mileage: {cars[currentCarIndex].mileage} miles</p>
-              <p>Location: {cars[currentCarIndex].location}</p>
-              <p><a href={cars[currentCarIndex].url} target="_blank" rel="noopener noreferrer">View Listing</a></p>
-              <div>
-                <button onClick={() => handleFeedback(cars[currentCarIndex].id, 'like')}>Like</button>
-                <button onClick={() => handleFeedback(cars[currentCarIndex].id, 'dislike')}>Dislike</button>
-              </div>
-            </div>
-          ) : (
-            <p>No more cars to show.</p>
-          )}
-        </div>
       </header>
+      <div {...handlers} className="app__cardContainer">
+        {cars.length > 0 && currentIndex < cars.length ? (
+          <Card car={cars[currentIndex]} />
+        ) : (
+          <p>No more cars to show.</p>
+        )}
+      </div>
     </div>
   );
 }
