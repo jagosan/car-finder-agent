@@ -7,7 +7,7 @@ spec:
     spec:
       containers:
       - name: scraper
-        image: us-central1-docker.pkg.dev/jmacleod-42/car-finder-agent-repo/car-finder-scraper:v3
+        image: us-central1-docker.pkg.dev/jmacleod-42/car-finder-agent-repo/car-finder-scraper:latest
         imagePullPolicy: Always # Ensure the latest image is pulled
         env:
         - name: MARKETCHECK_API_KEY
@@ -15,6 +15,6 @@ spec:
             secretKeyRef:
               name: marketcheck-api-key
               key: key
-        command: ["/bin/sh", "-c", "curl -v 'https://api.marketcheck.com/v2/search/car/active?api_key=$MARKETCHECK_API_KEY'"]
+        command: ["python3", "-u", "scraper/scrape.py", "--make", "Toyota", "--model", "Camry", "--zip_code", "90210", "--radius", "50"]
       restartPolicy: OnFailure
   backoffLimit: 0
