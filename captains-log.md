@@ -119,3 +119,33 @@ I am unable to see the diagnostic output (`nslookup` and `curl`) from the scrape
 1.  **Retrieve Logs from Last Job:** Immediately retrieve the logs from the `car-scraper-job-20251126230838` job to inspect the output of `nslookup` and `curl`.
 2.  **Analyze DNS/Network Configuration:** Based on the results, investigate Kubernetes DNS service configuration, CoreDNS logs, and any relevant network policies or firewall rules that might be blocking outbound traffic to external endpoints.
 ---
+
+---
+## Stardate: 2026.03.02
+
+### Mission: Debug Marketcheck API Integration - `NameResolutionError` revisited
+
+**Objective:** Diagnose and resolve persistent `NameResolutionError` for `marketcheck-prod.apigee.net` from within the scraper pod.
+
+**Mission Summary:**
+
+1.  **DNS Debugging:** Created a debug pod (`debug-pod`) in the same namespace with the same service account as the scraper job to investigate DNS resolution.
+2.  **Confirmed DNS Resolution:** Successfully resolved `api.marketcheck.com` from the debug pod, confirming that DNS is working correctly within the cluster.
+3.  **Identified Typo:** Realized the error was due to a typo in the domain name (`marketcheck-prod.apigee.net` instead of `api.marketcheck.com`).
+4.  **Backend Refactoring:** Corrected the backend deployment to remove the `ollama` container and use the correct `ollama` service URL.
+5.  **PVC Creation:** Created the `PersistentVolumeClaim` for the database, allowing the backend pod to be scheduled.
+6.  **Triggered New Scraper Jobs:** Triggered new scraper jobs to test the changes.
+7.  **Isolating the Issue:**
+    *   Added print statements to the scraper code to verify the URL being used.
+    *   Modified the scraper job to run a `curl` command directly, bypassing the python script.
+    *   Replaced the `requests` library with `urllib` to rule out issues with the `requests` library.
+
+**Current Blocker:**
+
+The `NameResolutionError` for `marketcheck-prod.apigee.net` persists, even after multiple attempts to isolate and debug the issue. The root cause remains unknown.
+
+**Next Steps:**
+
+1.  **Log debugging session:** Appending a summary of the debugging session to `captains-log.md`.
+2.  **Commit and push changes:** Committing and pushing the changes to the repository for posterity.
+---

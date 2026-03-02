@@ -3,7 +3,8 @@ kind: Pod
 metadata:
   name: debug-pod
 spec:
+  serviceAccountName: car-finder-sa
   containers:
   - name: debugger
-    image: curlimages/curl
+    image: nicolaka/netshoot
     command: ["sleep", "3600"]

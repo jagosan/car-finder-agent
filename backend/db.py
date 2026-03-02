@@ -37,26 +37,43 @@ def init_db():
     c.execute(sql_create_feedback_table)
 
     # Add new columns to listings table if they don't exist
+    print("Attempting to add new columns to the listings table...")
     try:
+        print("Adding image_url...")
         c.execute("ALTER TABLE listings ADD COLUMN image_url TEXT")
+        print("image_url added.")
     except sqlite3.OperationalError:
+        print("image_url column already exists.")
         pass # column already exists
     try:
+        print("Adding exterior_color...")
         c.execute("ALTER TABLE listings ADD COLUMN exterior_color TEXT")
+        print("exterior_color added.")
     except sqlite3.OperationalError:
+        print("exterior_color column already exists.")
         pass # column already exists
     try:
+        print("Adding interior_color...")
         c.execute("ALTER TABLE listings ADD COLUMN interior_color TEXT")
+        print("interior_color added.")
     except sqlite3.OperationalError:
+        print("interior_color column already exists.")
         pass # column already exists
     try:
+        print("Adding drivetrain...")
         c.execute("ALTER TABLE listings ADD COLUMN drivetrain TEXT")
+        print("drivetrain added.")
     except sqlite3.OperationalError:
+        print("drivetrain column already exists.")
         pass # column already exists
     try:
+        print("Adding has_accidents...")
         c.execute("ALTER TABLE listings ADD COLUMN has_accidents INTEGER")
+        print("has_accidents added.")
     except sqlite3.OperationalError:
+        print("has_accidents column already exists.")
         pass # column already exists
+    print("Finished adding new columns.")
 
     conn.commit()
     conn.close()

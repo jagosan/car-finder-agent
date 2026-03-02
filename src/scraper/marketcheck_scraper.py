@@ -1,8 +1,7 @@
 
-import requests
-import os
-
-API_KEY = os.environ.get("MARKETCHECK_API_KEY", "YOUR_API_KEY")
+import urllib.request
+import urllib.parse
+import json
 
 def search_cars(api_key, make=None, model=None, year=None, zip_code=None, radius=None):
     """
@@ -24,9 +23,18 @@ def search_cars(api_key, make=None, model=None, year=None, zip_code=None, radius
     # Remove any None values from the params dict
     params = {k: v for k, v in params.items() if v is not None}
 
-    response = requests.get(api_url, params=params)
-    response.raise_for_status()  # Raise an exception for bad status codes
-    return response.json()
+    print(f"[*] Requesting URL: {api_url} with params: {params}")
+    
+    try:
+        url_params = urllib.parse.urlencode(params)
+        url = f"{api_url}?{url_params}"
+        with urllib.request.urlopen(url) as response:
+            if response.status != 200:
+                raise Exception(f"HTTP Error {response.status}: {response.reason}")
+            data = response.read()
+            return json.loads(data)
+    except Exception as e:
+        raise e
 
 def format_listings(listings_data):
     """

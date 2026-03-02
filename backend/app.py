@@ -212,6 +212,23 @@ def test_ollama():
     except Exception as e:
         return jsonify(message="An unexpected error occurred during the test!", error=str(e)), 500
 
+@app.route('/api/init-db')
+def init_db_route():
+    import io
+    import sys
+    from backend.db import init_db
+
+    # Redirect stdout to a string buffer
+    old_stdout = sys.stdout
+    sys.stdout = new_stdout = io.StringIO()
+
+    init_db()
+
+    # Restore stdout
+    sys.stdout = old_stdout
+
+    return new_stdout.getvalue()
+
 if __name__ == '__main__':
     try:
         init_db()
