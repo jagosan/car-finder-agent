@@ -33,18 +33,32 @@ body {
 }
 
 .app__form input {
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    font-size: 1rem;
+    transition: box-shadow 0.3s;
+}
+
+.app__form input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
 }
 
 .app__form button {
-    padding: 10px 20px;
-    border-radius: 5px;
+    padding: 15px 30px;
+    border-radius: 10px;
     border: none;
     background-color: #007bff;
     color: white;
     cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s;
+}
+
+.app__form button:hover {
+    background-color: #0056b3;
 }
 
 .app__cardContainer {
@@ -53,7 +67,7 @@ body {
   margin-top: 5vh;
 }
 
-.swipe {
-  position: absolute;
+.app__cardContainer.swiping .card {
+  transform: scale(1.05);
 }
 

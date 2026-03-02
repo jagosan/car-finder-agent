@@ -113,7 +113,11 @@ function App() {
       });
   };
 
+  const [swiping, setSwiping] = useState(false);
+
   const handlers = useSwipeable({
+    onSwiping: () => setSwiping(true),
+    onSwiped: () => setSwiping(false),
     onSwipedLeft: () => {
       if (cars.length > 0 && currentIndex < cars.length) {
         handleFeedback(cars[currentIndex].id, 'dislike');
@@ -153,7 +157,7 @@ function App() {
         {scrapeMessage && <p>{scrapeMessage}</p>}
         {scrapeStatus && <p>Scrape Status: {scrapeStatus.status} - {scrapeStatus.message}</p>}
       </header>
-      <div {...handlers} className="app__cardContainer">
+      <div {...handlers} className={`app__cardContainer ${swiping ? 'swiping' : ''}`}>
         {cars.length > 0 && currentIndex < cars.length ? (
           <Card car={cars[currentIndex]} />
         ) : (
