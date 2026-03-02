@@ -123,26 +123,26 @@ After the application is stable, this phase will address underlying architectura
 
 ### Phase 5: UI Modernization
 
-*   [ ] **Modernize the UI:**
-    *   [ ] **Mobile UI:**
-        *   [ ] Display a preview image of the car.
-        *   [ ] Display an overview with:
-            *   [ ] Mileage
-            *   [ ] Exterior and Interior colors
-            *   [ ] Year
-            *   [ ] Accidents
-            *   [ ] Other standard information like AWD vs. RWD.
-    - [ ] **Tinder-like swiping:**
-        *   [ ] Implement swipe left/right to like/dislike.
-    - [ ] **Modern input fields:**
-        *   [ ] Update input fields to be more modern and pleasing.
-*   [ ] **Data model changes:**
-    *   [ ] **Marketcheck API:**
-        *   [ ] Check what data is available from the Marketcheck API.
-    *   [ ] **Database:**
-        *   [ ] Update the database schema to store the new data.
-    *   [ ] **Backend:**
-        *   [ ] Update the backend to serve the new data.
+*   [x] **Modernize the UI:**
+    *   [x] **Mobile UI:**
+        *   [x] Display a preview image of the car.
+        *   [x] Display an overview with:
+            *   [x] Mileage
+            *   [x] Exterior and Interior colors
+            *   [x] Year
+            *   [x] Accidents
+            *   [x] Other standard information like AWD vs. RWD.
+    - [x] **Tinder-like swiping:**
+        *   [x] Implement swipe left/right to like/dislike.
+    - [x] **Modern input fields:**
+        *   [x] Update input fields to be more modern and pleasing.
+*   [x] **Data model changes:**
+    *   [x] **Marketcheck API:**
+        *   [x] Check what data is available from the Marketcheck API.
+    *   [x] **Database:**
+        *   [x] Update the database schema to store the new data.
+    *   [x] **Backend:**
+        *   [x] Update the backend to serve the new data.
 
 ---
 
