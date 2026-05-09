@@ -146,19 +146,18 @@ After the application is stable, this phase will address underlying architectura
 
 ---
 
-## 4. Current Debugging Focus
+## 4. Current Status
 
-**Problem:** The scraper job is unable to resolve the hostname `marketcheck-prod.apigee.net`, leading to `NameResolutionError`. This indicates a potential DNS configuration issue or network restriction within the Kubernetes cluster for outbound connections.
-
-**Current Status:**
+**The scraper job is now working correctly.** All major blockers have been resolved:
 *   The backend and frontend are stable and running.
-*   The scraper is now configured to use the Marketcheck API.
+*   The scraper is successfully fetching data from the Marketcheck API.
+*   The scraper is successfully sending the scraped data to the backend.
+*   The backend is successfully storing the data in the database.
 *   Asynchronous scraping with status polling is implemented.
 *   The database is persistent using a PVC.
 *   A Kubernetes Service Account and RBAC have been created for job creation.
 
 **Next Steps:**
+*   The next phase of the project is to address the remaining items in the "Deployment" and "AI-Powered Analysis" sections.
+*   This includes adding SSL/443 support to the Ingress and implementing the self-hosted model integration.
 
-1.  **Debug DNS Resolution:** Investigate the `NameResolutionError` in the scraper pod by executing `curl -v https://marketcheck-prod.apigee.net` from within the pod.
-2.  **Verify Kubernetes DNS:** Check Kubernetes DNS settings and ensure pods can resolve external hostnames. This might involve `kubectl exec` into a pod and trying `nslookup marketcheck-prod.apigee.net`.
-3.  **Network Policy Review:** If DNS resolution is confirmed, review any existing network policies that might be restricting outbound traffic from the scraper pods.
