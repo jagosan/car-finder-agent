@@ -21,3 +21,7 @@ To improve efficiency and avoid repeating mistakes, this `GEMINI.md` file should
 - Be rigorous in your debugging and always create a plan before trying to make incremental progress based on assumptions.
 - Always provide an estimate of the time an operation is expected to take, and provide updates for any operation that is expected to take more than a minute.
 - Never overwrite `captains-log.md`. It is intended to be a log of activities for posterity. Always append new entries to the log.
+
+## File Content Manipulation
+
+- When appending content to a file, never use `append=True` in the `write_file` tool. Instead, read the entire file into memory, append the new content, and then write the entire file back. Verify the changes with `git diff` before committing.
