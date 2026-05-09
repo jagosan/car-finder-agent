@@ -73,8 +73,8 @@ This checklist tracks the implementation status of each component.
     *   [x] Create a new Dockerfile for the front-end.
     *   [x] Create a new Dockerfile for the back-end API.
     *   [x] Update Kubernetes manifests to include the new front-end and back-end deployments and services.
-    *   [x] Expose the front-end service to the internet using an Ingress.
-    *   [ ] Add SSL/443 support to the Ingress. **(Blocked by GKE Ingress POST request issue)**
+    *   [x] Expose the front-end service to the internet using a LoadBalancer service. It is accessible at `http://104.197.35.156`.
+    *   [ ] Add SSL/443 support. **(Blocked by LoadBalancer configuration)**
 
 ### Phase 4: Dev Environment & Tooling
 

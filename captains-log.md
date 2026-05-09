@@ -38,3 +38,31 @@ This session involved a deep-dive into multiple layers of the Kubernetes deploym
 
 After resolving all the above issues, the scraper job now runs successfully. It correctly fetches data from the Marketcheck API, connects to the backend service, and sends the data, which is then successfully stored in the database. The full data pipeline is now operational.
 ---
+
+---
+## Stardate: 2026.05.09 (Continued)
+
+### Mission: Debug Frontend Deployment and Accessibility
+
+**Objective:** Diagnose and resolve issues preventing the frontend application from being accessible via an external IP.
+
+**Mission Summary:**
+
+1.  **Missing Frontend Deployment:** Discovered that the frontend deployment was not present in the cluster.
+2.  **Incorrect Image Name:** Identified that the deployment was configured to use an image named `car-finder-frontend:v4`, while the image being built was `frontend:latest`.
+3.  **Old `nginx.conf` Issue:** Even after building and pushing the correct image, the frontend pods were still showing `host not found in upstream "backend"` error, indicating they were somehow using an outdated `nginx.conf`. This was resolved by deleting and recreating the deployment, forcing it to pull the latest image.
+4.  **Service Type Misconfiguration:** Discovered that the `frontend-service.yaml` was creating a `ClusterIP` service, preventing external access.
+5.  **Firewall Blocking Access:** Diagnosed that no firewall rule was allowing external traffic to the new `app` service's external IP.
+
+**Resolution:**
+
+1.  **New Frontend Deployment:** Created a new frontend deployment named `app` and an associated service (`app`) to avoid any lingering issues with the previous `frontend` deployment.
+2.  **Correct Image Build:** Built and pushed the Docker image with the correct name and tag: `us-central1-docker.pkg.dev/jmacleod-42/car-finder-agent-repo/app:v1`.
+3.  **`nginx.conf` Fix:** Modified `frontend/nginx.conf` to correctly proxy requests to `http://gemini-flask-app-service:80`.
+4.  **Service Type Correction:** Modified `kubernetes/app-service.yaml` to specify `type: LoadBalancer`.
+5.  **Firewall Rule Creation:** Created a firewall rule (`allow-app-frontend`) to allow ingress TCP traffic on port 80 to the `app` service's external IP.
+
+**Final Outcome:**
+
+The frontend application is now successfully deployed and accessible via the external IP address: `http://104.197.35.156`.
+---
